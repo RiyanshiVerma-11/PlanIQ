@@ -1,0 +1,6 @@
+{
+  "name": "PlanIQ | Master Event Strategy & Logistics Suite",
+  "description": "Execution-ready event blueprint director with creative concept design, dynamic budget allocation, backward milestone planning, hourly run of show, and vendor vetting kits.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
