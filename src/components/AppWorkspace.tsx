@@ -815,10 +815,16 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
         </div>
       )}
 
-      {/* Slide-over Assistant Drawer */}
+      {/* Slide-over Assistant Drawer (Clean side panel, NO background blur) */}
       {isAssistantDrawerOpen && blueprint && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="w-full sm:w-[480px] md:w-[540px] h-full bg-zinc-950 border-l border-white/10 shadow-2xl flex flex-col">
+        <div className="fixed inset-y-0 right-0 z-50 flex justify-end pointer-events-none">
+          {/* Transparent click-outside overlay WITHOUT blur */}
+          <div
+            className="fixed inset-0 bg-black/25 pointer-events-auto"
+            onClick={() => setIsAssistantDrawerOpen(false)}
+            aria-label="Close Assistant overlay"
+          />
+          <div className="relative pointer-events-auto w-full sm:w-[500px] md:w-[560px] h-full bg-[#080d1a] border-l border-cyan-500/30 shadow-[-20px_0_50px_rgba(0,0,0,0.8)] flex flex-col z-10 animate-fade-in">
             <AIPlanningAssistant
               blueprint={blueprint}
               onApplyAction={handleApplyAction}

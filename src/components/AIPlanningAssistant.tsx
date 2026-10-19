@@ -184,29 +184,32 @@ How can I help elevate your event today? You can ask for creative ideas, budget 
 
   return (
     <div
-      className={`flex flex-col bg-zinc-950 text-zinc-100 ${
+      className={`flex flex-col bg-[#080d1a] text-slate-100 ${
         isDrawer
           ? 'h-full w-full'
-          : 'rounded-2xl border border-white/10 shadow-2xl h-[calc(100vh-140px)] max-h-[850px]'
+          : 'rounded-2xl border border-cyan-500/20 shadow-2xl h-[calc(100vh-140px)] max-h-[850px]'
       }`}
     >
-      {/* Header Bar */}
-      <div className="flex items-center justify-between border-b border-white/10 px-5 py-4 bg-zinc-900/60 backdrop-blur-md shrink-0">
+      {/* Sleek, Clean Header Bar */}
+      <div className="flex items-center justify-between border-b border-slate-800/80 px-5 py-4 bg-[#0a0f20]/90 shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-zinc-950 font-bold shadow-md shadow-amber-500/20">
-            <Sparkles className="h-4 w-4" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 via-indigo-600 to-violet-600 p-0.5 shadow-md shadow-cyan-500/20">
+            <div className="flex h-full w-full items-center justify-center rounded-[10px] bg-[#080d1a]">
+              <Bot className="h-5 w-5 text-cyan-400" />
+            </div>
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-sm text-zinc-100 truncate">
+              <span className="font-bold text-sm text-white tracking-tight">
                 PlanIQ AI Co-Planner
               </span>
-              <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400 border border-emerald-500/20">
-                Active Context
+              <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-300 border border-cyan-500/30">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                Live Context
               </span>
             </div>
-            <p className="text-[11px] text-zinc-400 truncate">
-              {blueprint.constraints.eventName || blueprint.constraints.eventType} · {blueprint.constraints.guestCount} guests
+            <p className="text-xs text-slate-400 truncate mt-0.5">
+              {blueprint.constraints.eventName || blueprint.constraints.eventType} · {blueprint.constraints.guestCount} guests · {formatCurrency(blueprint.budgetBreakdown.totalBudget, blueprint.budgetBreakdown.currency)}
             </p>
           </div>
         </div>
@@ -214,7 +217,7 @@ How can I help elevate your event today? You can ask for creative ideas, budget 
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={handleResetChat}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
             title="Reset Conversation"
             aria-label="Reset Conversation"
           >
@@ -223,58 +226,18 @@ How can I help elevate your event today? You can ask for creative ideas, budget 
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
               title="Close Assistant"
               aria-label="Close Assistant"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
           )}
         </div>
       </div>
 
-      {/* Context Badge Strip */}
-      <div className="border-b border-white/5 bg-zinc-900/40 px-5 py-2.5 flex items-center justify-between text-xs text-zinc-400 overflow-x-auto gap-4 shrink-0">
-        <div className="flex items-center gap-4 text-[11px]">
-          <span className="flex items-center gap-1">
-            <DollarSign className="h-3 w-3 text-emerald-400" />
-            <strong className="text-zinc-200 font-mono">
-              {formatCurrency(blueprint.budgetBreakdown.totalBudget, blueprint.budgetBreakdown.currency)}
-            </strong>
-          </span>
-          <span className="hidden sm:inline text-zinc-600">·</span>
-          <span className="truncate max-w-[200px]">
-            Venue: <strong className="text-zinc-200">{blueprint.constraints.locationSetting}</strong>
-          </span>
-          <span className="hidden sm:inline text-zinc-600">·</span>
-          <span className="truncate max-w-[200px]">
-            Theme: <strong className="text-zinc-200">{blueprint.constraints.keyTheme}</strong>
-          </span>
-        </div>
-        <span className="text-[10px] uppercase font-mono text-amber-400/80 tracking-wider shrink-0">
-          GenAI Assisted
-        </span>
-      </div>
-
-      {/* Quick Topic Chips Strip */}
-      <div className="border-b border-white/5 bg-zinc-950 px-4 py-2 flex items-center gap-2 overflow-x-auto shrink-0 custom-scrollbar">
-        <span className="text-[11px] text-zinc-400 whitespace-nowrap pl-1">
-          Quick queries:
-        </span>
-        {quickPromptTopics.map((topic, i) => (
-          <button
-            key={i}
-            onClick={() => handleSendMessage(topic.query)}
-            disabled={isLoading}
-            className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-zinc-300 hover:border-amber-500/40 hover:text-amber-300 hover:bg-zinc-800 transition-colors whitespace-nowrap disabled:opacity-50"
-          >
-            <span>{topic.label}</span>
-          </button>
-        ))}
-      </div>
-
       {/* Message History Thread */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 custom-scrollbar bg-[#080d1a]">
         {messages.map((msg) => {
           const isUser = msg.sender === 'user';
           return (
@@ -283,56 +246,56 @@ How can I help elevate your event today? You can ask for creative ideas, budget 
               className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
             >
               {!isUser && (
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 mt-0.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 mt-0.5 shadow-sm">
                   <Bot className="h-4 w-4" />
                 </div>
               )}
 
-              <div className={`max-w-[85%] sm:max-w-[78%] flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
+              <div className={`max-w-[88%] sm:max-w-[82%] flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
                 <div
-                  className={`rounded-2xl p-4 text-xs sm:text-sm leading-relaxed ${
+                  className={`rounded-2xl p-4 sm:p-5 text-sm leading-relaxed ${
                     isUser
-                      ? 'bg-amber-500 text-zinc-950 font-medium rounded-tr-none shadow-md'
-                      : 'bg-zinc-900 border border-white/10 text-zinc-200 rounded-tl-none shadow-sm'
+                      ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-medium rounded-tr-none shadow-lg shadow-cyan-950/40'
+                      : 'bg-[#0f172a] border border-slate-800/80 text-slate-100 rounded-tl-none shadow-md'
                   }`}
                 >
                   {/* Message Content */}
-                  <div className="whitespace-pre-wrap space-y-2">
+                  <div className="whitespace-pre-wrap space-y-2.5">
                     {msg.text.split('\n\n').map((paragraph, pIdx) => {
                       if (paragraph.startsWith('### ')) {
                         return (
-                          <h4 key={pIdx} className="font-semibold text-zinc-100 text-sm mt-1 mb-1">
+                          <h4 key={pIdx} className="font-bold text-cyan-300 text-sm sm:text-base mt-2 mb-1 tracking-tight">
                             {paragraph.replace('### ', '')}
                           </h4>
                         );
                       }
-                      return <p key={pIdx}>{paragraph}</p>;
+                      return <p key={pIdx} className="text-slate-200">{paragraph}</p>;
                     })}
                   </div>
 
                   {/* Executable Action Suggestion Card */}
                   {!isUser && msg.actionSuggestion && (
-                    <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs">
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="font-semibold text-amber-300 flex items-center gap-1.5">
-                          <Sparkles className="h-3.5 w-3.5" />
+                    <div className="mt-4 rounded-xl border border-cyan-500/30 bg-cyan-950/30 p-3.5 text-xs shadow-inner">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className="font-bold text-cyan-300 flex items-center gap-1.5">
+                          <Sparkles className="h-4 w-4 text-cyan-400" />
                           Recommended Action
                         </span>
                         {appliedActionId === msg.id ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
-                            <Check className="h-3.5 w-3.5" /> Applied
+                          <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                            <Check className="h-3.5 w-3.5" /> Applied to Event
                           </span>
                         ) : (
                           <button
                             onClick={() => handleApplyAction(msg.actionSuggestion!, msg.id)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-amber-500 px-2.5 py-1 text-[11px] font-bold text-zinc-950 hover:bg-amber-400 transition-colors shadow-sm"
+                            className="btn-electric inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-white shadow-md hover:scale-105 active:scale-95 transition-all"
                           >
-                            <span>Execute</span>
-                            <ArrowRight className="h-3 w-3" />
+                            <span>Apply</span>
+                            <ArrowRight className="h-3.5 w-3.5" />
                           </button>
                         )}
                       </div>
-                      <p className="text-zinc-300 text-[11px]">
+                      <p className="text-slate-300 text-xs leading-relaxed">
                         {msg.actionSuggestion.description}
                       </p>
                     </div>
@@ -340,17 +303,17 @@ How can I help elevate your event today? You can ask for creative ideas, budget 
 
                   {/* Message Action Footer */}
                   {!isUser && (
-                    <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-2 text-[10px] text-zinc-400">
+                    <div className="mt-3 flex items-center justify-between border-t border-slate-800/80 pt-2 text-[11px] text-slate-400">
                       <span>{msg.timestamp}</span>
                       <button
                         onClick={() => handleCopyText(msg.id, msg.text)}
-                        className="inline-flex items-center gap-1 hover:text-zinc-200 transition-colors"
+                        className="inline-flex items-center gap-1 hover:text-cyan-300 transition-colors"
                         title="Copy text"
                       >
                         {copiedId === msg.id ? (
                           <>
                             <Check className="h-3 w-3 text-emerald-400" />
-                            <span className="text-emerald-400">Copied</span>
+                            <span className="text-emerald-400 font-medium">Copied</span>
                           </>
                         ) : (
                           <>
@@ -365,13 +328,13 @@ How can I help elevate your event today? You can ask for creative ideas, budget 
 
                 {/* Follow-up Suggestions Chips */}
                 {!isUser && msg.suggestions && msg.suggestions.length > 0 && (
-                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  <div className="mt-3 flex flex-wrap gap-1.5">
                     {msg.suggestions.map((suggestion, sIdx) => (
                       <button
                         key={sIdx}
                         onClick={() => handleSendMessage(suggestion)}
                         disabled={isLoading}
-                        className="rounded-full border border-white/10 bg-zinc-900/80 px-2.5 py-1 text-[11px] text-zinc-300 hover:border-amber-500/30 hover:text-amber-300 hover:bg-zinc-800 transition-colors text-left disabled:opacity-50"
+                        className="rounded-xl border border-slate-800 bg-[#0f172a]/90 hover:border-cyan-500/50 hover:bg-cyan-950/40 hover:text-cyan-200 px-3 py-1.5 text-xs text-slate-300 transition-all text-left disabled:opacity-50 shadow-sm"
                       >
                         {suggestion}
                       </button>
@@ -381,7 +344,7 @@ How can I help elevate your event today? You can ask for creative ideas, budget 
               </div>
 
               {isUser && (
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-zinc-950 mt-0.5 font-bold">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-600 text-white mt-0.5 font-bold shadow-md shadow-cyan-500/20">
                   <User className="h-4 w-4" />
                 </div>
               )}
@@ -392,11 +355,11 @@ How can I help elevate your event today? You can ask for creative ideas, budget 
         {/* Loading Indicator */}
         {isLoading && (
           <div className="flex items-center gap-3">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
               <Bot className="h-4 w-4" />
             </div>
-            <div className="rounded-2xl rounded-tl-none border border-white/10 bg-zinc-900 px-4 py-3 text-xs text-zinc-400 flex items-center gap-2">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-400" />
+            <div className="rounded-2xl rounded-tl-none border border-slate-800 bg-[#0f172a] px-4 py-3 text-xs text-slate-300 flex items-center gap-2.5 shadow-sm">
+              <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
               <span>Analyzing context & synthesizing strategic guidance...</span>
             </div>
           </div>
@@ -405,8 +368,25 @@ How can I help elevate your event today? You can ask for creative ideas, budget 
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Quick Prompt Starters (Docked above input) */}
+      <div className="border-t border-slate-800/80 bg-[#0a0f20]/95 px-4 pt-3 pb-1 flex items-center gap-2 overflow-x-auto shrink-0 custom-scrollbar">
+        <span className="text-[11px] font-semibold text-slate-400 whitespace-nowrap">
+          Quick queries:
+        </span>
+        {quickPromptTopics.map((topic, i) => (
+          <button
+            key={i}
+            onClick={() => handleSendMessage(topic.query)}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-800 bg-[#0f172a] hover:border-cyan-500/50 hover:bg-cyan-950/40 hover:text-cyan-200 px-2.5 py-1 text-xs text-slate-300 transition-all whitespace-nowrap disabled:opacity-50"
+          >
+            <span>{topic.label}</span>
+          </button>
+        ))}
+      </div>
+
       {/* Input Bar */}
-      <div className="border-t border-white/10 p-3 sm:p-4 bg-zinc-900/60 backdrop-blur-md shrink-0">
+      <div className="p-3 sm:p-4 bg-[#0a0f20]/95 shrink-0">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -422,14 +402,14 @@ How can I help elevate your event today? You can ask for creative ideas, budget 
               onChange={(e) => setInputQuery(e.target.value)}
               placeholder="Ask about decor ideas, budget cuts, vendor vetting, or timeline..."
               disabled={isLoading}
-              className="w-full rounded-xl border border-white/10 bg-zinc-950 px-4 py-2.5 text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-amber-500/60 focus:outline-none focus:ring-1 focus:ring-amber-500/60 transition-colors disabled:opacity-50"
+              className="w-full rounded-xl border border-slate-700/80 bg-[#080d1a] px-4 py-3 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition-colors disabled:opacity-50"
             />
           </div>
 
           <button
             type="submit"
             disabled={!inputQuery.trim() || isLoading}
-            className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-zinc-950 hover:bg-amber-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-amber-500/20"
+            className="btn-electric flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl text-white hover:scale-105 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-cyan-500/20"
             title="Send query"
             aria-label="Send query"
           >
@@ -440,9 +420,9 @@ How can I help elevate your event today? You can ask for creative ideas, budget 
             )}
           </button>
         </form>
-        <div className="mt-2 flex items-center justify-between px-1 text-[10px] text-zinc-400">
+        <div className="mt-2 flex items-center justify-between px-1 text-[11px] text-slate-400">
           <span>Press Enter to send</span>
-          <span>Dual-Engine: Google Gemini + PlanIQ Expert Engine</span>
+          <span>Google Gemini + PlanIQ Expert Engine</span>
         </div>
       </div>
     </div>
