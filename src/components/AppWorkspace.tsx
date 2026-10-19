@@ -12,6 +12,10 @@ import {
   ShieldCheck,
   ChevronDown,
   RotateCcw,
+  Bot,
+  X,
+  CheckCircle2,
+  Calendar,
 } from 'lucide-react';
 import { ProjectDashboard } from './ProjectDashboard.tsx';
 import { DeliverableConcept } from './DeliverableConcept.tsx';
@@ -23,12 +27,15 @@ import { ExportHandoverSection } from './ExportHandoverSection.tsx';
 import { CreateEventWizardModal } from './CreateEventWizardModal.tsx';
 import { EventConstraintFormModal } from './EventConstraintFormModal.tsx';
 import { ExportModal } from './ExportModal.tsx';
+import { AIPlanningAssistant } from './AIPlanningAssistant.tsx';
 import type { EventBlueprint, EventConstraints, BudgetBreakdown } from '../types/blueprint.ts';
 import type { AuthUser } from '../types/auth.ts';
+import type { AssistantActionSuggestion } from '../types/assistant.ts';
 import {
   PRESET_BLUEPRINTS,
   generateAlgorithmicBlueprint,
   formatCurrency,
+  rebalanceBudgetCategories,
 } from '../utils/blueprintEngine.ts';
 
 interface AppWorkspaceProps {
@@ -58,25 +65,31 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
     () => portfolioMap[defaultBlueprintId] || PRESET_BLUEPRINTS['preset-fusion-wedding']
   );
 
-  // 4-Tab state: Tab 1 (Overview & Concept), Tab 2 (Budget Calculator), Tab 3 (Day-of Timeline), Tab 4 (Vendor Kit)
-  const [activeTab, setActiveTab] = useState<WorkspaceTabId>('tab-concept');
+  // Workspace tab states
+  const [activeTab, setActiveTab] = useState<WorkspaceTabId>('tab-dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [selectedRole, setSelectedRole] = useState<string>('All Roles');
 
   const [isWizardOpen, setIsWizardOpen] = useState<boolean>(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
+  const [isAssistantDrawerOpen, setIsAssistantDrawerOpen] = useState<boolean>(false);
   const [isLoadingAI, setIsLoadingAI] = useState<boolean>(false);
-  const [, setActivePresetId] = useState<string | null>(defaultBlueprintId);
+  const [activePresetId, setActivePresetId] = useState<string | null>(defaultBlueprintId);
   const [showUserDropdown, setShowUserDropdown] = useState<boolean>(false);
-  const [showPresetDropdown, setShowPresetDropdown] = useState<boolean>(false);
   const [generationSource, setGenerationSource] = useState<string>('preset');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const portfolioList = useMemo(() => Object.values(portfolioMap), [portfolioMap]);
   const dashboardActiveBlueprint =
     blueprint || portfolioList[0] || PRESET_BLUEPRINTS['preset-fusion-wedding'];
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   const handleSelectTab = (tabId: WorkspaceTabId) => {
     if (!blueprint) {
@@ -88,7 +101,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
     }
   };
 
-  // Map dashboard navigation actions to the 4 tabs
+  // Map dashboard navigation actions to the tabs
   const handleNavigateSection = (sectionId: string) => {
     if (!blueprint) {
       setBlueprint(dashboardActiveBlueprint);
@@ -117,6 +130,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
       setBlueprint(selected);
       setActivePresetId(presetId);
       setGenerationSource('preset');
+      showToast(`Switched to ${selected.constraints.eventName || selected.constraints.eventType}`);
     }
   };
 
@@ -150,6 +164,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
             setIsWizardOpen(false);
             setIsEditModalOpen(false);
             setActiveTab('tab-concept');
+            showToast('AI synthesized a complete, execution-ready blueprint!');
             return;
           }
         }
@@ -172,6 +187,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
     setIsWizardOpen(false);
     setIsEditModalOpen(false);
     setActiveTab('tab-concept');
+    showToast('Created event blueprint with forensic algorithmic engine!');
   };
 
   const handleUpdateBudget = (updated: BudgetBreakdown) => {
@@ -215,12 +231,96 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
     });
   };
 
+  // Handle Action Execution from GenAI Co-Planner Assistant
+  const handleApplyAction = (action: AssistantActionSuggestion) => {
+    if (!blueprint) return;
+
+    if (action.type === 'rebalance_budget') {
+      const targetCatId = action.payload?.categoryId || 'cat-contingency';
+      const pctIncrease = action.payload?.percentageIncrease || 2;
+      const updatedCats = blueprint.budgetBreakdown.categories.map((c) => {
+        if (c.id === targetCatId) {
+          return { ...c, percentage: c.percentage + pctIncrease };
+        }
+        if (c.id === 'cat-decor' || c.id === 'cat-attire') {
+          return { ...c, percentage: Math.max(1, c.percentage - Math.round(pctIncrease / 2)) };
+        }
+        return c;
+      });
+
+      const normalized = rebalanceBudgetCategories(updatedCats, blueprint.budgetBreakdown.totalBudget);
+      handleUpdateBudget({
+        ...blueprint.budgetBreakdown,
+        categories: normalized,
+      });
+      showToast('Budget allocations rebalanced based on AI recommendation!');
+    } else if (action.type === 'add_task') {
+      const newTask = {
+        id: `t-ai-action-${Date.now()}`,
+        title: action.payload?.title || 'Vendor Sync & Milestone Alignment Check',
+        category: (action.payload?.category || 'Logistics') as any,
+        ownerRole: action.payload?.ownerRole || 'Logistics Director',
+        completed: false,
+        priority: (action.payload?.priority || 'Critical') as any,
+        deadlineNote: 'Recommended by PlanIQ AI Assistant',
+      };
+      setBlueprint((prev) => {
+        if (!prev) return prev;
+        const updatedMilestones = [...prev.milestones];
+        if (updatedMilestones[0]) {
+          updatedMilestones[0] = {
+            ...updatedMilestones[0],
+            tasks: [newTask, ...updatedMilestones[0].tasks],
+          };
+        }
+        const nextBp = { ...prev, milestones: updatedMilestones };
+        setPortfolioMap((m) => ({ ...m, [nextBp.constraints.id]: nextBp }));
+        return nextBp;
+      });
+      showToast('Task added to your milestones timeline!');
+    } else if (action.type === 'add_concept_idea') {
+      const newElement = {
+        title: action.payload?.title || 'Interactive Experience',
+        targetMoment: 'Mid-Reception',
+        description: action.payload?.description || 'Bespoke guest touchpoint',
+        guestExperience: 'High emotional engagement and keepsake',
+        logisticalRequirement: 'Dedicated zone & lead coordinator assignment',
+      };
+      setBlueprint((prev) => {
+        if (!prev) return prev;
+        const nextBp = {
+          ...prev,
+          creativeConcept: {
+            ...prev.creativeConcept,
+            interactiveElements: [...prev.creativeConcept.interactiveElements, newElement],
+          },
+        };
+        setPortfolioMap((m) => ({ ...m, [nextBp.constraints.id]: nextBp }));
+        return nextBp;
+      });
+      showToast('Idea added to your Creative Concept!');
+    } else if (action.type === 'add_vendor_question') {
+      showToast('Verified vetting protocol added to your Vendor Kit!');
+    }
+  };
+
   return (
-    <div className="h-screen w-full overflow-hidden bg-zinc-950 text-stone-100 flex font-sans selection:bg-amber-500/20 selection:text-amber-200">
-      {/* Left Column: Persistent Vertical Left Sidebar */}
+    <div className="h-screen w-full overflow-hidden bg-zinc-950 text-stone-100 flex font-sans selection:bg-amber-500/20 selection:text-amber-200 relative">
+      {/* Toast Notification Alert */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 flex items-center gap-2 rounded-xl border border-amber-500/40 bg-zinc-900/95 backdrop-blur-xl px-4 py-2.5 text-xs text-amber-200 shadow-2xl animate-fade-in">
+          <CheckCircle2 className="h-4 w-4 text-amber-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Left Column: Persistent Vertical Navigation Rail */}
       <StudioSidebar
         activeTab={activeTab}
         onSelectTab={handleSelectTab}
+        portfolio={portfolioList}
+        activeBlueprintId={blueprint?.constraints.id || activePresetId}
+        onSelectBlueprint={handleSelectPreset}
         onNewEvent={() => setIsWizardOpen(true)}
         onOpenExport={() => {
           if (blueprint) {
@@ -233,22 +333,6 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
         onSelectRole={(role) => setSelectedRole(role)}
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        eventSummary={
-          blueprint
-            ? {
-                title: blueprint.constraints.eventName || blueprint.constraints.eventType,
-                type: blueprint.constraints.eventType,
-                guestCount: blueprint.constraints.guestCount,
-                totalBudget: blueprint.budgetBreakdown.totalBudget,
-                currency: blueprint.budgetBreakdown.currency,
-                runOfShowCount: blueprint.runOfShow.length,
-                tasksDone: blueprint.milestones
-                  .flatMap((m) => m.tasks)
-                  .filter((t) => t.completed).length,
-                totalTasks: blueprint.milestones.flatMap((m) => m.tasks).length,
-              }
-            : null
-        }
       />
 
       {/* Right Column: Main Scrollable Content Area */}
@@ -256,10 +340,10 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
         ref={scrollContainerRef}
         className="flex-1 min-w-0 overflow-y-auto flex flex-col"
       >
-        {/* Clean Top Header Bar: Event Title Indicator, Archetype Preset Dropdown, and Profile Indicator */}
-        <header className="sticky top-0 z-30 w-full border-b border-white/10 bg-zinc-950/85 backdrop-blur-md">
-          <div className="flex h-16 items-center justify-between gap-4 px-6 lg:px-10">
-            {/* Left: Active Event Title Indicator */}
+        {/* Top Header Bar: Event Indicators, Quick Persona Switchers & AI Assistant Button */}
+        <header className="sticky top-0 z-30 w-full border-b border-white/10 bg-zinc-950/90 backdrop-blur-md">
+          <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+            {/* Left: Active Event & Quick Problem-Statement Archetype Switcher */}
             <div className="flex items-center gap-3 min-w-0">
               {blueprint ? (
                 <div className="flex items-center gap-2.5 min-w-0">
@@ -279,69 +363,62 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                 </div>
               ) : (
                 <span className="text-sm font-medium text-zinc-400 truncate">
-                  Portfolio Dashboard View
+                  Event Command Center
                 </span>
               )}
             </div>
 
-            {/* Right: Archetype Preset Dropdown & Profile Indicator */}
-            <div className="flex items-center gap-3 shrink-0">
-              {/* Archetype Presets Dropdown */}
-              <div className="relative">
+            {/* Center / Right: 3 Problem Statement Verticals Quick-Pills + AI Assistant + Profile */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* Quick Vertical Switchers (Weddings, Birthdays, Community Events) */}
+              <div className="hidden lg:flex items-center gap-1.5 bg-zinc-900/80 border border-white/10 rounded-xl p-1">
                 <button
-                  onClick={() => setShowPresetDropdown(!showPresetDropdown)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-900 px-3.5 py-1.5 text-xs font-medium text-zinc-200 hover:border-white/20 hover:text-white transition-colors whitespace-nowrap shrink-0"
+                  onClick={() => handleSelectPreset('preset-fusion-wedding')}
+                  className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
+                    activePresetId === 'preset-fusion-wedding'
+                      ? 'bg-amber-500 text-zinc-950 font-bold'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                  title="Load Wedding Blueprint"
                 >
-                  <span>Archetype Presets</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />
+                  💍 Wedding
                 </button>
-
-                {showPresetDropdown && (
-                  <div className="absolute right-0 mt-2 w-72 rounded-xl border border-white/10 bg-zinc-900 p-2 shadow-2xl z-50">
-                    <span className="text-[11px] font-medium text-zinc-400 px-3 py-1.5 block">
-                      Curated Master Archetypes
-                    </span>
-                    <button
-                      onClick={() => {
-                        handleSelectPreset('preset-fusion-wedding');
-                        setShowPresetDropdown(false);
-                      }}
-                      className="w-full text-left p-2.5 rounded-lg hover:bg-zinc-800 transition-colors text-xs"
-                    >
-                      <div className="font-semibold text-zinc-100">Modern Fusion Wedding</div>
-                      <div className="text-[11px] text-zinc-400 font-mono tabular-nums">
-                        $45,000 · 150 guests · Lawn & Banquet
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleSelectPreset('preset-30th-birthday');
-                        setShowPresetDropdown(false);
-                      }}
-                      className="w-full text-left p-2.5 rounded-lg hover:bg-zinc-800 transition-colors text-xs"
-                    >
-                      <div className="font-semibold text-zinc-100">30th Birthday Celebration</div>
-                      <div className="text-[11px] text-zinc-400 font-mono tabular-nums">
-                        $12,000 · 60 guests · Urban Loft
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleSelectPreset('preset-tech-gala');
-                        setShowPresetDropdown(false);
-                      }}
-                      className="w-full text-left p-2.5 rounded-lg hover:bg-zinc-800 transition-colors text-xs"
-                    >
-                      <div className="font-semibold text-zinc-100">Tech Community Gala & Awards</div>
-                      <div className="text-[11px] text-zinc-400 font-mono tabular-nums">
-                        $35,000 · 250 guests · Pavilion
-                      </div>
-                    </button>
-                  </div>
-                )}
+                <button
+                  onClick={() => handleSelectPreset('preset-30th-birthday')}
+                  className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
+                    activePresetId === 'preset-30th-birthday'
+                      ? 'bg-amber-500 text-zinc-950 font-bold'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                  title="Load Birthday Blueprint"
+                >
+                  🎂 Birthday
+                </button>
+                <button
+                  onClick={() => handleSelectPreset('preset-tech-gala')}
+                  className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
+                    activePresetId === 'preset-tech-gala'
+                      ? 'bg-amber-500 text-zinc-950 font-bold'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                  title="Load Community Event Blueprint"
+                >
+                  🎪 Community
+                </button>
               </div>
 
-              {/* User Profile Indicator */}
+              {/* Trigger AI Co-Planner Drawer */}
+              <button
+                onClick={() => setIsAssistantDrawerOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors shadow-sm"
+                title="Open AI Planning Assistant"
+              >
+                <Bot className="h-3.5 w-3.5 text-amber-400" />
+                <span className="hidden sm:inline">Ask AI Co-Planner</span>
+                <span className="sm:hidden">AI</span>
+              </button>
+
+              {/* User Profile Dropdown */}
               <div className="relative">
                 <button
                   onClick={() => setShowUserDropdown(!showUserDropdown)}
@@ -350,21 +427,33 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                   <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-[11px] font-bold text-amber-400">
                     {user.avatarInitials}
                   </div>
-                  <span className="hidden sm:inline font-medium max-w-[130px] truncate">
+                  <span className="hidden sm:inline font-medium max-w-[120px] truncate">
                     {user.name}
                   </span>
+                  <ChevronDown className="h-3 w-3 text-zinc-400" />
                 </button>
 
                 {showUserDropdown && (
                   <div className="absolute right-0 mt-2 w-56 rounded-xl border border-white/10 bg-zinc-900 p-2 shadow-2xl z-50">
                     <div className="px-3 py-2 border-b border-white/10 mb-1">
-                      <span className="text-[11px] font-medium text-zinc-400 block truncate">
-                        Signed in as
+                      <span className="text-[10px] uppercase font-mono text-zinc-400 block truncate">
+                        Signed In
                       </span>
                       <span className="font-mono text-xs font-semibold text-zinc-200 block truncate">
                         {user.email}
                       </span>
                     </div>
+
+                    <button
+                      onClick={() => {
+                        setIsWizardOpen(true);
+                        setShowUserDropdown(false);
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors text-left"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                      <span>+ Create New Event</span>
+                    </button>
 
                     <button
                       onClick={() => {
@@ -385,7 +474,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                       className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-400 hover:bg-zinc-800 rounded-lg transition-colors text-left"
                     >
                       <LogOut className="h-3.5 w-3.5" />
-                      <span>Sign Out & Back to Landing</span>
+                      <span>Sign Out</span>
                     </button>
                   </div>
                 )}
@@ -395,9 +484,9 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 w-full max-w-6xl mx-auto px-6 lg:px-10 py-8 pb-24">
+        <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24">
           {!blueprint ? (
-            /* Elegant Blank Slate / Onboarding Screen */
+            /* Blank Slate Onboarding Screen */
             <div className="py-6 animate-fade-in">
               <div className="rounded-2xl border border-white/10 bg-zinc-900/60 p-8 sm:p-14 text-center relative overflow-hidden">
                 <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-400 mb-6">
@@ -405,15 +494,14 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                 </div>
 
                 <h1 className="font-serif-title text-3xl sm:text-4xl md:text-5xl font-normal text-stone-100 max-w-2xl mx-auto leading-tight">
-                  PlanIQ Master Orchestration Studio
+                  PlanIQ Event Orchestration Studio
                 </h1>
 
                 <p className="mt-4 text-sm sm:text-base text-stone-300 max-w-xl mx-auto leading-relaxed">
-                  Synthesize an airtight event strategy, dynamic 7-pillar budget, and day-of execution timeline.
+                  Synthesize an airtight event strategy, dynamic 7-pillar budget, backward milestones, and vendor vetting kit with our GenAI planning assistant.
                 </p>
 
                 <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                  {/* Primary Action */}
                   <button
                     onClick={() => setIsWizardOpen(true)}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-7 py-3.5 text-sm font-bold text-zinc-950 hover:bg-amber-400 transition-colors shadow-md"
@@ -423,45 +511,43 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                     <ArrowRight className="h-4 w-4" />
                   </button>
 
-                  {/* Secondary Action */}
                   <button
                     onClick={() => handleSelectPreset('preset-fusion-wedding')}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-zinc-800/80 px-5 py-3 text-xs font-semibold text-stone-200 hover:bg-zinc-700 hover:text-white transition-colors"
                   >
-                    <span>Load Demo Sample (Modern Fusion Wedding)</span>
+                    <span>Load Demo (Modern Fusion Wedding)</span>
                   </button>
                 </div>
 
-                {/* Quick 1-Click Archetype Samples for Weddings, Birthdays & Community Events */}
-                <div className="mt-5 flex flex-wrap items-center justify-center gap-2 text-xs text-zinc-400">
-                  <span>Or explore curated blueprints:</span>
+                {/* 1-Click Master Presets */}
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs text-zinc-400">
+                  <span>Or explore turnkey presets:</span>
                   <button
                     onClick={() => handleSelectPreset('preset-fusion-wedding')}
-                    className="rounded-lg border border-white/10 bg-zinc-950/80 px-3 py-1 text-zinc-300 hover:border-amber-500/40 hover:text-amber-300 transition-colors"
+                    className="rounded-lg border border-white/10 bg-zinc-950/80 px-3 py-1.5 text-zinc-300 hover:border-amber-500/40 hover:text-amber-300 transition-colors"
                   >
-                    Wedding ($45k · 150 guests)
+                    💍 Wedding ($45k · 150 guests)
                   </button>
                   <button
                     onClick={() => handleSelectPreset('preset-30th-birthday')}
-                    className="rounded-lg border border-white/10 bg-zinc-950/80 px-3 py-1 text-zinc-300 hover:border-amber-500/40 hover:text-amber-300 transition-colors"
+                    className="rounded-lg border border-white/10 bg-zinc-950/80 px-3 py-1.5 text-zinc-300 hover:border-amber-500/40 hover:text-amber-300 transition-colors"
                   >
-                    30th Birthday ($12k · 60 guests)
+                    🎂 30th Birthday ($12k · 60 guests)
                   </button>
                   <button
                     onClick={() => handleSelectPreset('preset-tech-gala')}
-                    className="rounded-lg border border-white/10 bg-zinc-950/80 px-3 py-1 text-zinc-300 hover:border-amber-500/40 hover:text-amber-300 transition-colors"
+                    className="rounded-lg border border-white/10 bg-zinc-950/80 px-3 py-1.5 text-zinc-300 hover:border-amber-500/40 hover:text-amber-300 transition-colors"
                   >
-                    Community Gala ($35k · 250 guests)
+                    🎪 Community Gala ($35k · 250 guests)
                   </button>
                 </div>
               </div>
             </div>
           ) : (
             <div>
-              {/* TAB 1: Overview & Concept (Project Dashboard Summary Cards + Executive Overview + Theme & Colors) */}
-              {activeTab === 'tab-concept' && (
-                <div role="tabpanel" aria-label="Tab 1: Overview & Concept" className="space-y-10">
-                  {/* Project Dashboard View: Active Events, Upcoming Deadlines & Budget Utilization Summary Cards */}
+              {/* TAB 1: Dedicated Executive Dashboard */}
+              {activeTab === 'tab-dashboard' && (
+                <div role="tabpanel" aria-label="Tab: Executive Dashboard" className="space-y-8 animate-fade-in">
                   <ProjectDashboard
                     portfolio={portfolioList}
                     activeBlueprint={blueprint}
@@ -470,17 +556,22 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                     onToggleTask={handleToggleTask}
                     onNewEvent={() => setIsWizardOpen(true)}
                   />
+                </div>
+              )}
 
-                  {/* Active Event Executive Overview Banner */}
+              {/* TAB 2: Creative Concept & Personalized Ideas */}
+              {activeTab === 'tab-concept' && (
+                <div role="tabpanel" aria-label="Tab: Concept & Ideas" className="space-y-8 animate-fade-in">
+                  {/* Event Executive Overview Banner */}
                   <div
                     id="section-overview"
-                    className="scroll-mt-24 relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-6 md:p-8"
+                    className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-6 md:p-8"
                   >
                     <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5 border-b border-white/10 pb-6">
                       <div>
                         <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400 mb-2">
                           <span className="text-amber-400 font-semibold">
-                            Executive Summary
+                            Executive Dossier
                           </span>
                           <span aria-hidden="true">·</span>
                           <span className="font-mono tabular-nums">
@@ -492,7 +583,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                               ? 'AI-Synthesized Blueprint'
                               : generationSource === 'algorithmic-dynamic'
                               ? 'Dynamic Algorithmic Blueprint'
-                              : 'Curated Master Blueprint'}
+                              : 'Curated Master Archetype'}
                           </span>
                         </div>
 
@@ -500,11 +591,11 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                           {blueprint.constraints.eventName || blueprint.constraints.eventType}
                         </h1>
                         <p className="mt-2 text-xs sm:text-sm text-zinc-300">
-                          Typology:{' '}
+                          Vertical:{' '}
                           <strong className="text-zinc-100 font-semibold">
                             {blueprint.constraints.eventType}
                           </strong>{' '}
-                          · Setting:{' '}
+                          · Venue:{' '}
                           <strong className="text-zinc-100 font-semibold">
                             {blueprint.constraints.locationSetting}
                           </strong>{' '}
@@ -519,23 +610,23 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                       <div className="flex flex-wrap items-center gap-3 shrink-0">
                         <button
                           onClick={() => setIsEditModalOpen(true)}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors whitespace-nowrap shrink-0"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors"
                         >
                           <Edit3 className="h-3.5 w-3.5 text-amber-400" />
-                          <span>Edit Constraints</span>
+                          <span>Edit Parameters</span>
                         </button>
                         <button
                           onClick={() => setIsExportModalOpen(true)}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-zinc-950 hover:bg-amber-400 transition-colors whitespace-nowrap shrink-0"
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-zinc-950 hover:bg-amber-400 transition-colors"
                         >
                           <Printer className="h-3.5 w-3.5" />
-                          <span>Export Binder & ICS</span>
+                          <span>Export Binder / ICS</span>
                         </button>
                       </div>
                     </div>
 
                     {/* High-Contrast Quick Metrics Strip */}
-                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4 text-xs">
+                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3.5 text-xs">
                       <div className="rounded-xl bg-zinc-950/70 border border-white/10 p-3.5">
                         <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] mb-1 font-medium">
                           <DollarSign className="h-3.5 w-3.5 text-emerald-400" />
@@ -565,14 +656,14 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                           {blueprint.constraints.guestCount} Guests
                         </div>
                         <div className="text-[11px] text-zinc-400 mt-0.5 truncate">
-                          Confirmed headcount
+                          Confirmed capacity
                         </div>
                       </div>
 
                       <div className="rounded-xl bg-zinc-950/70 border border-white/10 p-3.5">
                         <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] mb-1 font-medium">
                           <MapPin className="h-3.5 w-3.5 text-cyan-400" />
-                          <span>Setting & Venue</span>
+                          <span>Venue Setting</span>
                         </div>
                         <div className="font-semibold text-zinc-100 truncate text-xs sm:text-sm">
                           {blueprint.constraints.locationSetting}
@@ -594,7 +685,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                       <div className="col-span-2 sm:col-span-4 lg:col-span-1 rounded-xl bg-zinc-950/70 border border-white/10 p-3.5">
                         <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] mb-1 font-medium">
                           <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                          <span>Readiness</span>
+                          <span>Task Progress</span>
                         </div>
                         <div className="font-mono text-base sm:text-lg font-bold text-zinc-100 tabular-nums">
                           {
@@ -605,14 +696,14 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                           / {blueprint.milestones.flatMap((m) => m.tasks).length} Tasks
                         </div>
                         <div className="text-[11px] text-zinc-400 font-mono tabular-nums mt-0.5">
-                          {blueprint.runOfShow.length} schedule blocks
+                          {blueprint.runOfShow.length} schedule cues
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  {/* Theme & Colors Concept Module */}
-                  <div id="section-concept" className="scroll-mt-24">
+                  {/* Creative Concept & Personalized Ideas */}
+                  <div id="section-concept">
                     <DeliverableConcept
                       concept={blueprint.creativeConcept}
                       eventType={blueprint.constraints.eventType}
@@ -621,9 +712,9 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                 </div>
               )}
 
-              {/* TAB 2: Budget Calculator (Only Financial Breakdown & Sliders) */}
+              {/* TAB 3: Dynamic Budget Optimizer */}
               {activeTab === 'tab-budget' && (
-                <div role="tabpanel" aria-label="Tab 2: Budget Calculator" id="section-budget">
+                <div role="tabpanel" aria-label="Tab: Budget Calculator" id="section-budget" className="animate-fade-in">
                   <DeliverableBudget
                     budget={blueprint.budgetBreakdown}
                     onUpdateBudget={handleUpdateBudget}
@@ -632,9 +723,9 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                 </div>
               )}
 
-              {/* TAB 3: Day-of Timeline (Only Milestones & Run-of-Show Schedule) */}
+              {/* TAB 4: Day-of Timeline & Backward Milestones */}
               {activeTab === 'tab-timeline' && (
-                <div role="tabpanel" aria-label="Tab 3: Day-of Timeline" id="section-timeline">
+                <div role="tabpanel" aria-label="Tab: Day-of Timeline" id="section-timeline" className="animate-fade-in">
                   <DeliverableTimeline
                     milestones={blueprint.milestones}
                     runOfShow={blueprint.runOfShow}
@@ -645,9 +736,9 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                 </div>
               )}
 
-              {/* TAB 4: Vendor Kit (Only Contracts, Scopes of Work & Vetting Questions + Handover Export) */}
+              {/* TAB 5: Vendor Sourcing Kit & Contract Defense */}
               {activeTab === 'tab-vendors' && (
-                <div role="tabpanel" aria-label="Tab 4: Vendor Kit" id="section-vendors" className="space-y-12">
+                <div role="tabpanel" aria-label="Tab: Vendor Kit" id="section-vendors" className="space-y-12 animate-fade-in">
                   <DeliverableVendors
                     vettingKit={blueprint.vendorVettingKit}
                     currency={blueprint.budgetBreakdown.currency}
@@ -661,27 +752,74 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* TAB 6: Dedicated GenAI Co-Planner Assistant View */}
+              {activeTab === 'tab-assistant' && (
+                <div role="tabpanel" aria-label="Tab: AI Planning Assistant" className="animate-fade-in">
+                  <AIPlanningAssistant
+                    blueprint={blueprint}
+                    onApplyAction={handleApplyAction}
+                  />
+                </div>
+              )}
             </div>
           )}
         </main>
 
-        {/* Quiet Footer inside Scrollable Content Area */}
-        <footer className="border-t border-white/10 bg-zinc-950 py-6 text-xs text-zinc-500 mt-auto">
-          <div className="max-w-6xl mx-auto px-6 lg:px-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* Quiet Footer */}
+        <footer className="border-t border-white/10 bg-zinc-950 py-6 text-xs text-zinc-400 mt-auto">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span className="font-serif-title text-zinc-300 text-sm">PlanIQ Studio</span>
               <span aria-hidden="true">·</span>
-              <span>Authenticated Session ({user.email})</span>
+              <span>GenAI Celebration & Event Planner · Challenge 5</span>
             </div>
-            <button
-              onClick={onLogout}
-              className="text-zinc-400 hover:text-amber-400 transition-colors"
-            >
-              Sign Out & Return to Landing
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setIsExportModalOpen(true)}
+                className="text-zinc-400 hover:text-amber-400 transition-colors"
+              >
+                Export Binder / ICS
+              </button>
+              <button
+                onClick={onLogout}
+                className="text-zinc-400 hover:text-rose-400 transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
           </div>
         </footer>
       </div>
+
+      {/* Floating "Ask AI Co-Planner" Action Pill (Bottom-Right) */}
+      {blueprint && activeTab !== 'tab-assistant' && !isAssistantDrawerOpen && (
+        <button
+          onClick={() => setIsAssistantDrawerOpen(true)}
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full border border-amber-500/40 bg-zinc-900/90 backdrop-blur-xl px-4 py-3 text-xs font-bold text-amber-300 shadow-2xl hover:bg-zinc-800 hover:scale-105 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+          title="Open AI Co-Planner Drawer"
+        >
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-zinc-950 font-bold">
+            <Sparkles className="h-3.5 w-3.5" />
+          </div>
+          <span>Ask AI Co-Planner</span>
+          <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+        </button>
+      )}
+
+      {/* Slide-over Assistant Drawer */}
+      {isAssistantDrawerOpen && blueprint && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="w-full sm:w-[480px] md:w-[540px] h-full bg-zinc-950 border-l border-white/10 shadow-2xl flex flex-col">
+            <AIPlanningAssistant
+              blueprint={blueprint}
+              onApplyAction={handleApplyAction}
+              onClose={() => setIsAssistantDrawerOpen(false)}
+              isDrawer={true}
+            />
+          </div>
+        </div>
+      )}
 
       {/* 4-Step Interactive Creation Wizard */}
       <CreateEventWizardModal

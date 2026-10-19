@@ -4,7 +4,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI, Type } from '@google/genai';
 import { generateAlgorithmicBlueprint } from './src/utils/blueprintEngine.ts';
+import { generateExpertAssistantResponse } from './src/utils/assistantEngine.ts';
 import type { EventConstraints, EventBlueprint } from './src/types/blueprint.ts';
+import type { AssistantEventContext, AssistantChatResponse } from './src/types/assistant.ts';
 
 dotenv.config();
 
@@ -395,6 +397,103 @@ Deliverables Required:
   // Dynamic Algorithmic Master Blueprint fallback
   const blueprint = generateAlgorithmicBlueprint(constraints);
   res.json({ blueprint, source: 'algorithmic-dynamic' });
+});
+
+// Endpoint: Interactive GenAI Planning Assistant Chat
+app.post('/api/assistant/chat', async (req, res) => {
+  const body = req.body;
+  if (!body || typeof body !== 'object' || !body.message) {
+    res.status(400).json({ error: 'Missing message in request body.' });
+    return;
+  }
+
+  const userMessage = sanitizeText(body.message, 1000);
+  const context: AssistantEventContext = {
+    eventType: sanitizeText(body.context?.eventType, 160, 'Celebration Event'),
+    eventName: body.context?.eventName ? sanitizeText(body.context.eventName, 160) : undefined,
+    guestCount: Math.min(100_000, Math.max(1, Number(body.context?.guestCount) || 100)),
+    totalBudget: Math.min(100_000_000, Math.max(100, Number(body.context?.totalBudget) || 25000)),
+    currency: sanitizeText(body.context?.currency, 10, 'USD'),
+    locationSetting: sanitizeText(body.context?.locationSetting, 200, 'Indoor & Outdoor Venue'),
+    keyTheme: sanitizeText(body.context?.keyTheme, 300, 'Modern Tailored Celebration'),
+    timeRemainingMonths: Number(body.context?.timeRemainingMonths) || 3,
+    activeTab: sanitizeText(body.context?.activeTab, 50, 'tab-concept'),
+  };
+
+  // If Gemini API key is configured, synthesize response with Gemini
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      const ai = new GoogleGenAI({
+        apiKey: process.env.GEMINI_API_KEY,
+        httpOptions: {
+          headers: { 'User-Agent': 'aistudio-build' },
+        },
+      });
+
+      const systemPrompt = `You are PlanIQ's Master Event Strategist & Celebration Co-Planner. You provide expert, tactical, and creative advice for weddings, birthdays, and community gatherings.
+Current Event Context:
+- Event: ${context.eventName || context.eventType} (${context.eventType})
+- Scale: ${context.guestCount} guests
+- Budget: ${context.totalBudget} ${context.currency} (Approx ${Math.round(context.totalBudget / context.guestCount)} / guest)
+- Venue / Setting: ${context.locationSetting}
+- Theme: ${context.keyTheme}
+- Horizon: ${context.timeRemainingMonths} months remaining
+
+Instructions:
+1. Provide actionable, concise, high-value advice formatted with clear Markdown headers and bullet points.
+2. Directly address the user query with realistic pricing, logistics, or creative suggestions.
+3. Keep response under 350 words so it is easily scannable and conversational.
+4. Provide 3 relevant follow-up query suggestions.
+5. If applicable, recommend 1 concrete action (rebalance_budget, add_task, add_vendor_question, or add_concept_idea).`;
+
+      const prompt = `${systemPrompt}\n\nUser Query: "${userMessage}"\n\nReturn a JSON object with:
+{
+  "reply": "Markdown text with your advice",
+  "suggestions": ["Follow-up question 1", "Follow-up question 2", "Follow-up question 3"],
+  "actionSuggestion": {
+    "type": "rebalance_budget" | "add_task" | "add_vendor_question" | "add_concept_idea",
+    "label": "Short button label",
+    "description": "Short explanation",
+    "payload": {}
+  }
+}`;
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Assistant synthesis timeout')), 15000)
+      );
+
+      const aiResponse = (await Promise.race([
+        ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+          },
+        }),
+        timeoutPromise,
+      ])) as any;
+
+      if (aiResponse.text) {
+        const parsed = JSON.parse(aiResponse.text);
+        if (parsed.reply) {
+          const responsePayload: AssistantChatResponse = {
+            reply: parsed.reply,
+            suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions.slice(0, 3) : [],
+            actionSuggestion: parsed.actionSuggestion,
+            source: 'gemini-ai',
+          };
+          res.json(responsePayload);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Gemini Assistant chat fallback to expert strategist engine:', err);
+    }
+  }
+
+  // Deterministic Expert Engine Fallback (guarantees 100% offline and test reliability)
+  const fallback = generateExpertAssistantResponse(userMessage, context);
+  res.json(fallback);
 });
 
 async function startServer() {

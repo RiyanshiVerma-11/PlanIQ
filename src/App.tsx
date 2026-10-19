@@ -74,12 +74,31 @@ export default function App() {
 
   const handleQuickStartPreset = (presetId: string) => {
     setSelectedPresetId(presetId);
-    // If already authenticated, go directly to app with preset
-    if (authUser) {
-      setCurrentView('app');
-    } else {
-      setCurrentView('login');
+    if (!authUser) {
+      const demoUser: AuthUser = {
+        email: 'director@planiq.studio',
+        name: 'Guest Planner',
+        avatarInitials: 'GP',
+        role: 'Event Strategist',
+        authenticatedAt: new Date().toISOString(),
+      };
+      setAuthUser(demoUser);
     }
+    setCurrentView('app');
+  };
+
+  const handleLaunchStudioDirectly = () => {
+    if (!authUser) {
+      const demoUser: AuthUser = {
+        email: 'director@planiq.studio',
+        name: 'Guest Planner',
+        avatarInitials: 'GP',
+        role: 'Event Strategist',
+        authenticatedAt: new Date().toISOString(),
+      };
+      setAuthUser(demoUser);
+    }
+    setCurrentView('app');
   };
 
   return (
@@ -88,6 +107,7 @@ export default function App() {
         <ProductLandingPage
           onGoToLogin={() => setCurrentView('login')}
           onQuickStartPreset={handleQuickStartPreset}
+          onLaunchStudioDirectly={handleLaunchStudioDirectly}
         />
       )}
 

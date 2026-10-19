@@ -21,11 +21,13 @@ import { formatCurrency } from '../utils/blueprintEngine.ts';
 interface ProductLandingPageProps {
   onGoToLogin: () => void;
   onQuickStartPreset: (presetId: string) => void;
+  onLaunchStudioDirectly?: () => void;
 }
 
 export const ProductLandingPage: React.FC<ProductLandingPageProps> = ({
   onGoToLogin,
   onQuickStartPreset,
+  onLaunchStudioDirectly,
 }) => {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [interactivePreviewTab, setInteractivePreviewTab] = useState<'concept' | 'budget' | 'timeline' | 'vendors'>('concept');
@@ -94,7 +96,7 @@ export const ProductLandingPage: React.FC<ProductLandingPageProps> = ({
               <span>Log In</span>
             </button>
             <button
-              onClick={onGoToLogin}
+              onClick={onLaunchStudioDirectly || onGoToLogin}
               className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3.5 py-1.5 text-xs font-bold text-stone-950 hover:bg-amber-400 transition-colors shadow-sm whitespace-nowrap shrink-0"
             >
               <span>Get Started Free</span>
@@ -126,7 +128,7 @@ export const ProductLandingPage: React.FC<ProductLandingPageProps> = ({
 
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <button
-                onClick={onGoToLogin}
+                onClick={onLaunchStudioDirectly || onGoToLogin}
                 className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-7 py-3.5 text-sm font-bold text-stone-950 hover:bg-amber-400 transition-all shadow-lg hover:shadow-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
               >
                 <span>Launch Director Studio</span>
