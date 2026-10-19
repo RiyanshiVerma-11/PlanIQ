@@ -303,10 +303,13 @@ Each generated blueprint produces five interconnected modules inside the workspa
     │   └── ExportModal.tsx                 # Full preview & download modal (Markdown, ICS, JSON, Print)
     └── utils/
         ├── blueprintEngine.ts              # Curated presets, algorithmic generator & budget math
-        ├── blueprintEngine.test.ts         # Unit tests for budget math & algorithmic edge cases
         ├── calendarExport.ts               # RFC 5545 .ics calendar generator
-        ├── calendarExport.test.ts          # Unit tests for RFC 5545 calendar formatting
         └── exportHelpers.ts                # Markdown compiler & browser file download helpers
+└── tests/
+    ├── blueprintEngine.test.ts             # Unit tests for budget math, presets & algorithmic edge cases
+    ├── calendarExport.test.ts              # Unit tests for RFC 5545 calendar formatting & midnight wrap
+    ├── exportHelpers.test.ts               # Unit tests for Markdown dossier & ICS export helpers
+    └── schemaIntegrity.test.ts             # End-to-end schema & domain contract verification
 ```
 
 ---
@@ -343,12 +346,12 @@ npm install
 # Start full-stack Express + Vite development server on port 3000
 npm run dev
 
-# Type-check the codebase
+# Type-check the codebase (including /src and /tests)
 npm run lint
 
 # Build production client bundle to dist/
 npm run build
 
-# Run unit tests (blueprint engine & RFC 5545 calendar export)
-npx tsx --test src/utils/blueprintEngine.test.ts src/utils/calendarExport.test.ts
+# Run the full automated test suite in /tests
+npm test
 ```

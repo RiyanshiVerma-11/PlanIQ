@@ -1,13 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateRunOfShowICS } from './calendarExport.ts';
-import { generateMarkdown, generateICS } from './exportHelpers.ts';
+import { generateRunOfShowICS } from '../src/utils/calendarExport.ts';
 import {
   PRESET_MODERN_FUSION_WEDDING,
   PRESET_30TH_BIRTHDAY,
   PRESET_TECH_GALA,
-} from './blueprintEngine.ts';
-import type { RunOfShowBlock } from '../types/blueprint.ts';
+} from '../src/utils/blueprintEngine.ts';
+import type { RunOfShowBlock } from '../src/types/blueprint.ts';
 
 test('generateRunOfShowICS generates valid RFC 5545 format with PlanIQ PRODID and CRLF line endings', () => {
   const ics = generateRunOfShowICS(
@@ -60,29 +59,14 @@ test('generateRunOfShowICS handles midnight wraparound (late night block ending 
   assert.ok(ics.includes('DESCRIPTION:Activity: Afterparty & Strike\\nRole: Stage Manager'));
 });
 
-test('exportHelpers.generateMarkdown compiles all 4 deliverables, tables, and task checkboxes', () => {
+test('generateRunOfShowICS produces exact VEVENT count matching each preset Run-of-Show', () => {
   for (const preset of [PRESET_MODERN_FUSION_WEDDING, PRESET_30TH_BIRTHDAY, PRESET_TECH_GALA]) {
-    const md = generateMarkdown(preset);
-    assert.ok(md.includes('# MASTER EVENT STRATEGY & LOGISTICS BLUEPRINT'));
-    assert.ok(md.includes('## EVENT CONSTRAINTS'));
-    assert.ok(md.includes('## 1. PERSONALIZED CREATIVE CONCEPT'));
-    assert.ok(md.includes('### Curated Color Scheme:'));
-    assert.ok(md.includes('### 3 Signature Interactive Elements:'));
-    assert.ok(md.includes('## 2. DYNAMIC BUDGET BREAKDOWN TABLE'));
-    assert.ok(md.includes('| Category | % Allocation |'));
-    assert.ok(md.includes('## 3. MILESTONES & DAY-OF TIMELINE'));
-    assert.ok(md.includes('- [x]') || md.includes('- [ ]'));
-    assert.ok(md.includes('## 4. VENDOR SOURCING & VETTING KIT'));
+    const ics = generateRunOfShowICS(
+      preset.runOfShow,
+      preset.constraints.eventType,
+      preset.constraints.locationSetting
+    );
+    const eventCount = (ics.match(/BEGIN:VEVENT/g) || []).length;
+    assert.equal(eventCount, preset.runOfShow.length);
   }
-});
-
-test('exportHelpers.generateICS compiles complete blueprint schedule to RFC 5545 with matching event count', () => {
-  const ics = generateICS(PRESET_MODERN_FUSION_WEDDING);
-  assert.ok(ics.includes('BEGIN:VCALENDAR'));
-  assert.ok(ics.includes('PRODID:-//PlanIQ//Event Strategy & Logistics Director//EN'));
-  assert.ok(ics.includes('UID:planiq-'));
-  assert.ok(ics.includes('END:VCALENDAR'));
-
-  const veventCount = (ics.match(/BEGIN:VEVENT/g) || []).length;
-  assert.equal(veventCount, PRESET_MODERN_FUSION_WEDDING.runOfShow.length);
 });

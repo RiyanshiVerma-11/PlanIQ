@@ -12,8 +12,8 @@ import {
   PRESET_30TH_BIRTHDAY,
   PRESET_TECH_GALA,
   PRESET_BLUEPRINTS,
-} from './blueprintEngine.ts';
-import type { CurrencyCode, BudgetCategoryAllocation } from '../types/blueprint.ts';
+} from '../src/utils/blueprintEngine.ts';
+import type { CurrencyCode, BudgetCategoryAllocation } from '../src/types/blueprint.ts';
 
 test('formatCurrency formats all 7 supported currencies accurately', () => {
   const currencies: CurrencyCode[] = ['USD', 'INR', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'];
@@ -253,4 +253,3 @@ test('Problem Statement Alignment: Covers Weddings, Birthdays, and Community Eve
     assert.equal(bp.vendorVettingKit.length, 4);
   }
 });
-

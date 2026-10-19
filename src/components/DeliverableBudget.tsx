@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   DollarSign,
   TrendingDown,
@@ -8,19 +8,27 @@ import {
   CheckCircle2,
   Trash2,
   PieChart,
-  ShieldAlert,
-  Sparkles,
+  BarChart3,
   Users,
-  Check,
   X,
-  Layers,
 } from 'lucide-react';
-import type {
-  BudgetBreakdown,
-  BudgetCategoryAllocation,
-  CurrencyCode,
-} from '../types/blueprint.ts';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  Cell,
+} from 'recharts';
+import type { BudgetBreakdown } from '../types/blueprint.ts';
 import { formatCurrency, calculateCategoryAmount } from '../utils/blueprintEngine.ts';
+import {
+  buildSpendingVsAllocationChartData,
+  type SpendingVsAllocationDatum,
+} from '../utils/dashboardMetrics.ts';
 
 interface DeliverableBudgetProps {
   budget: BudgetBreakdown;
@@ -29,13 +37,16 @@ interface DeliverableBudgetProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  venue: '#F59E0B',        // Amber
-  catering: '#10B981',     // Emerald
-  decor: '#8B5CF6',        // Violet
-  photography: '#06B6D4',  // Cyan
-  entertainment: '#EC4899',// Pink
-  attire: '#F97316',       // Orange
-  contingency: '#3B82F6',  // Blue
+  venue: '#F59E0B',         // Amber
+  catering: '#10B981',      // Emerald
+  fnb: '#10B981',           // Emerald
+  decor: '#8B5CF6',         // Violet
+  photography: '#06B6D4',   // Cyan
+  photo_av: '#06B6D4',      // Cyan
+  entertainment: '#EC4899', // Pink
+  attire: '#F97316',        // Orange
+  attire_favors: '#F97316', // Orange
+  contingency: '#3B82F6',   // Blue
 };
 
 export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
@@ -46,7 +57,9 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
   const [editingTotal, setEditingTotal] = useState(false);
   const [totalInput, setTotalInput] = useState(budget.totalBudget.toString());
   const [showAddCustomModal, setShowAddCustomModal] = useState(false);
-  const [selectedCatId, setSelectedCatId] = useState<string>('venue');
+  const [selectedCatId, setSelectedCatId] = useState<string>(
+    budget.categories[0]?.id || 'venue'
+  );
   const [customItemName, setCustomItemName] = useState('');
   const [customItemCost, setCustomItemCost] = useState('');
   const [autoRebalance, setAutoRebalance] = useState(true);
@@ -55,6 +68,22 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
   const totalPercentage = budget.categories.reduce((acc, cat) => acc + cat.percentage, 0);
   const totalAllocated = budget.categories.reduce((acc, cat) => acc + cat.allocatedAmount, 0);
   const perGuest = Math.round(budget.totalBudget / (guestCount || 1));
+
+  // Build Recharts data comparing Itemized Spending vs. Allocation per category
+  const chartData = useMemo(
+    () => buildSpendingVsAllocationChartData(budget),
+    [budget]
+  );
+
+  const totalActualSpend = useMemo(
+    () => chartData.reduce((sum, d) => sum + d.actualSpend, 0),
+    [chartData]
+  );
+
+  const overBudgetCount = useMemo(
+    () => chartData.filter((d) => d.status === 'over').length,
+    [chartData]
+  );
 
   // Auto-rebalance all categories to sum exactly to 100%
   const handleRebalanceTo100 = () => {
@@ -230,7 +259,7 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
     });
   };
 
-  // Compute SVG Donut Chart coordinates
+  // Compute Stacked Bar segments
   let cumulativePercent = 0;
   const donutSegments = budget.categories.map((cat) => {
     const startPct = cumulativePercent;
@@ -246,16 +275,73 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
     };
   });
 
+  // Custom Tooltip for Recharts Bar Chart
+  const renderCustomBarTooltip = ({
+    active,
+    payload,
+  }: {
+    active?: boolean;
+    payload?: Array<{ payload: SpendingVsAllocationDatum }>;
+  }) => {
+    if (!active || !payload || payload.length === 0) return null;
+    const data = payload[0].payload;
+    const isOver = data.actualSpend > data.allocatedAmount;
+    const diff = Math.abs(data.variance);
+
+    return (
+      <div className="rounded-xl border border-white/15 bg-zinc-950/95 p-3.5 shadow-2xl text-xs space-y-2 min-w-[230px]">
+        <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2">
+          <span className="font-semibold text-zinc-100">{data.category}</span>
+          <span className="font-mono tabular-nums text-amber-400">
+            {data.percentage}% Share
+          </span>
+        </div>
+
+        <div className="space-y-1 font-mono tabular-nums">
+          <div className="flex items-center justify-between text-zinc-300">
+            <span>Target Allocation:</span>
+            <span className="font-bold text-amber-400">
+              {formatCurrency(data.allocatedAmount, budget.currency)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-zinc-300">
+            <span>Itemized Spending:</span>
+            <span className={`font-bold ${isOver ? 'text-rose-400' : 'text-emerald-400'}`}>
+              {formatCurrency(data.actualSpend, budget.currency)}
+            </span>
+          </div>
+        </div>
+
+        <div className="pt-1.5 border-t border-white/10 flex items-center justify-between text-[11px] font-mono tabular-nums">
+          <span className="text-zinc-400">Variance Status:</span>
+          <span
+            className={
+              isOver
+                ? 'text-rose-400 font-semibold'
+                : data.variance > 0
+                ? 'text-emerald-400 font-semibold'
+                : 'text-zinc-300'
+            }
+          >
+            {isOver
+              ? `+${formatCurrency(diff, budget.currency)} Over Allocation`
+              : data.variance > 0
+              ? `${formatCurrency(diff, budget.currency)} Under Target`
+              : 'On Target (100%)'}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <section className="space-y-8 relative">
-      {/* 1. Bento KPI Metrics Overview (Linear/Stripe-tier widgets) */}
+      {/* 1. Bento KPI Metrics Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1: Total Budget */}
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-5 backdrop-blur-md shadow-xl flex flex-col justify-between">
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span className="font-semibold uppercase tracking-wider text-[10px] text-zinc-400">
-              Total Event Budget
-            </span>
+            <span className="font-medium text-zinc-400">Total Event Budget</span>
             <button
               onClick={() => setEditingTotal(!editingTotal)}
               className="text-amber-400 hover:text-amber-300 font-medium text-xs transition-colors"
@@ -295,11 +381,9 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
         </div>
 
         {/* Metric 2: Per-Guest Spend */}
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-5 backdrop-blur-md shadow-xl flex flex-col justify-between">
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span className="font-semibold uppercase tracking-wider text-[10px] text-zinc-400">
-              Per-Guest Spend Ratio
-            </span>
+            <span className="font-medium text-zinc-400">Per-Guest Spend Ratio</span>
             <Users className="h-3.5 w-3.5 text-cyan-400" />
           </div>
 
@@ -311,46 +395,46 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
 
           <div className="text-[11px] text-zinc-400 flex items-center justify-between pt-2 border-t border-white/5">
             <span>Confirmed Guest Capacity</span>
-            <span className="font-mono text-zinc-200 font-semibold">{guestCount} Guests</span>
+            <span className="font-mono text-zinc-200 font-semibold tabular-nums">
+              {guestCount} Guests
+            </span>
           </div>
         </div>
 
-        {/* Metric 3: Contingency Reserve */}
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-5 backdrop-blur-md shadow-xl flex flex-col justify-between">
+        {/* Metric 3: Itemized Spend vs Allocated */}
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span className="font-semibold uppercase tracking-wider text-[10px] text-zinc-400">
-              Contingency Reserve
-            </span>
-            <span className="rounded bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 text-[10px] font-mono font-bold text-emerald-400">
-              5% Locked
+            <span className="font-medium text-zinc-400">Itemized Spend Total</span>
+            <span className="font-mono text-[11px] text-emerald-400">
+              {overBudgetCount === 0 ? 'Within Target' : `${overBudgetCount} Over Target`}
             </span>
           </div>
 
           <div className="my-3">
             <div className="font-mono text-3xl font-extrabold text-emerald-400 tracking-tight tabular-nums">
-              {formatCurrency(budget.contingencyReserve, budget.currency)}
+              {formatCurrency(totalActualSpend, budget.currency)}
             </div>
           </div>
 
           <div className="text-[11px] text-zinc-400 flex items-center justify-between pt-2 border-t border-white/5">
-            <span>Overtime & Weather Buffer</span>
-            <span className="text-emerald-400 font-medium">Protected Reserve</span>
+            <span>Reserve Buffer</span>
+            <span className="text-emerald-400 font-mono tabular-nums font-medium">
+              {formatCurrency(budget.contingencyReserve, budget.currency)}
+            </span>
           </div>
         </div>
 
         {/* Metric 4: Allocation Health */}
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-5 backdrop-blur-md shadow-xl flex flex-col justify-between">
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-5 flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs text-zinc-400">
-            <span className="font-semibold uppercase tracking-wider text-[10px] text-zinc-400">
-              Allocation Balance
-            </span>
+            <span className="font-medium text-zinc-400">Allocation Balance</span>
             {totalPercentage === 100 ? (
-              <span className="flex items-center gap-1 text-emerald-400 text-[10px] font-mono font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
-                <CheckCircle2 className="h-3 w-3" /> 100% BALANCED
+              <span className="flex items-center gap-1 text-emerald-400 text-[11px] font-mono font-semibold">
+                <CheckCircle2 className="h-3.5 w-3.5" /> 100% Balanced
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-amber-400 text-[10px] font-mono font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">
-                <AlertCircle className="h-3 w-3" /> {totalPercentage}% TOTAL
+              <span className="flex items-center gap-1 text-amber-400 text-[11px] font-mono font-semibold">
+                <AlertCircle className="h-3.5 w-3.5" /> {totalPercentage}% Total
               </span>
             )}
           </div>
@@ -363,15 +447,116 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
 
           <div className="text-[11px] text-zinc-400 flex items-center justify-between pt-2 border-t border-white/5">
             <span>Coverage Quality</span>
-            <span className={totalPercentage === 100 ? 'text-emerald-400 font-medium' : 'text-amber-400 font-medium'}>
-              {totalPercentage === 100 ? 'Zero Variance' : `${100 - totalPercentage}% Discrepancy`}
+            <span
+              className={
+                totalPercentage === 100
+                  ? 'text-emerald-400 font-medium'
+                  : 'text-amber-400 font-medium'
+              }
+            >
+              {totalPercentage === 100
+                ? 'Zero Variance'
+                : `${100 - totalPercentage}% Discrepancy`}
             </span>
           </div>
         </div>
       </div>
 
-      {/* 2. Interactive Donut / Distribution Ring Chart Card */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/50 p-6 backdrop-blur-md shadow-xl">
+      {/* 2. Recharts Bar Chart: Spending vs. Allocation Across Expense Categories */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-6">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/30">
+              <BarChart3 className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-zinc-100">
+                Spending vs. Target Allocation by Expense Category
+              </h3>
+              <p className="text-xs text-zinc-400">
+                Compares target pillar allocations against itemized vendor quotes & custom line items ({budget.currency}).
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <div className="flex items-center gap-1.5 text-zinc-300">
+              <span className="h-2.5 w-2.5 rounded-sm bg-amber-500 inline-block" />
+              <span>Target Allocation</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-zinc-300">
+              <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500 inline-block" />
+              <span>Itemized Spending (Within Target)</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-zinc-300">
+              <span className="h-2.5 w-2.5 rounded-sm bg-rose-500 inline-block" />
+              <span>Over Allocation</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-80 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ top: 10, right: 16, left: 12, bottom: 20 }}
+              barGap={6}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="rgba(255,255,255,0.07)"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="shortLabel"
+                tick={{ fill: '#A1A1AA', fontSize: 11 }}
+                axisLine={{ stroke: 'rgba(255,255,255,0.12)' }}
+                tickLine={false}
+                interval={0}
+              />
+              <YAxis
+                tick={{ fill: '#A1A1AA', fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(value: number) =>
+                  formatCurrency(value, budget.currency)
+                }
+                width={80}
+              />
+              <Tooltip
+                content={renderCustomBarTooltip as any}
+                cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+              />
+              <Legend
+                wrapperStyle={{ fontSize: '12px', paddingTop: '10px', color: '#D4D4D8' }}
+              />
+              <Bar
+                dataKey="allocatedAmount"
+                name="Allocated Budget"
+                fill="#F59E0B"
+                radius={[6, 6, 0, 0]}
+                maxBarSize={38}
+              />
+              <Bar
+                dataKey="actualSpend"
+                name="Itemized Spending"
+                radius={[6, 6, 0, 0]}
+                maxBarSize={38}
+              >
+                {chartData.map((entry) => (
+                  <Cell
+                    key={`cell-${entry.id}`}
+                    fill={entry.status === 'over' ? '#F43F5E' : '#10B981'}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* 3. Interactive Proportional Spectrum Bar */}
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/50 p-6">
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-400 border border-amber-500/30">
@@ -387,27 +572,25 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
             </div>
           </div>
 
-          {/* Quick Stats pill */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-medium text-zinc-300 bg-zinc-950 px-3 py-1 rounded-lg border border-white/10">
-              7 Pillars · 100% Mode
-            </span>
+          <div className="flex items-center gap-2 text-xs font-mono text-zinc-400 tabular-nums">
+            <span>7 Pillars · {totalPercentage}% Allocated</span>
           </div>
         </div>
 
         {/* Stacked Proportional Distribution Bar */}
         <div className="space-y-3">
-          <div className="h-4 w-full rounded-full bg-zinc-950 overflow-hidden flex p-0.5 border border-white/10 shadow-inner">
+          <div className="h-4 w-full rounded-full bg-zinc-950 overflow-hidden flex p-0.5 border border-white/10">
             {donutSegments.map((seg) => (
               <div
                 key={seg.cat.id}
                 onMouseEnter={() => setHoveredCategory(seg.cat.id)}
                 onMouseLeave={() => setHoveredCategory(null)}
-                className="h-full transition-all duration-300 cursor-pointer relative group first:rounded-l-full last:rounded-r-full"
+                className="h-full transition-opacity duration-200 cursor-pointer relative group first:rounded-l-full last:rounded-r-full"
                 style={{
                   width: `${Math.max(2, seg.percentage)}%`,
                   backgroundColor: seg.color,
-                  filter: hoveredCategory === seg.cat.id ? 'brightness(1.25)' : undefined,
+                  opacity:
+                    hoveredCategory && hoveredCategory !== seg.cat.id ? 0.55 : 1,
                 }}
               />
             ))}
@@ -424,15 +607,15 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
                   key={cat.id}
                   onMouseEnter={() => setHoveredCategory(cat.id)}
                   onMouseLeave={() => setHoveredCategory(null)}
-                  className={`rounded-xl p-2.5 border transition-all duration-200 cursor-default ${
+                  className={`rounded-xl p-2.5 border transition-colors duration-200 cursor-default ${
                     isHovered
-                      ? 'bg-zinc-900 border-white/30 shadow-md scale-105'
+                      ? 'bg-zinc-900 border-white/30'
                       : 'bg-zinc-950/60 border-white/5 hover:border-white/20'
                   }`}
                 >
                   <div className="flex items-center gap-1.5 mb-1">
                     <span
-                      className="h-2.5 w-2.5 rounded-full shrink-0 shadow-sm"
+                      className="h-2.5 w-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: color }}
                     />
                     <span className="text-[11px] font-bold text-zinc-200 truncate">
@@ -452,13 +635,13 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
         </div>
       </div>
 
-      {/* 3. 7-Pillar Budget Breakdown Table with Sleek Sliders */}
-      <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-6 backdrop-blur-md shadow-xl">
+      {/* 4. 7-Pillar Budget Breakdown Table with Sleek Sliders */}
+      <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4 mb-6">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold tracking-wider uppercase text-amber-400">
+            <div className="flex items-center gap-2 text-xs font-semibold text-amber-400">
               <DollarSign className="h-4 w-4" />
-              <span>Deliverable 02 · Dynamic Capital Allocation</span>
+              <span>02. Dynamic Capital Allocation</span>
             </div>
             <h3 className="font-serif-title text-xl font-normal text-zinc-100 mt-1">
               7 Pillars of Event Spend & Cost-Saving Levers
@@ -467,7 +650,7 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
 
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Auto-rebalance toggle */}
-            <label className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-950/80 px-3 py-1.5 text-xs text-zinc-300 cursor-pointer hover:border-white/20 transition-colors select-none shadow-sm">
+            <label className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-950/80 px-3 py-1.5 text-xs text-zinc-300 cursor-pointer hover:border-white/20 transition-colors select-none">
               <input
                 type="checkbox"
                 checked={autoRebalance}
@@ -480,7 +663,7 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
             {totalPercentage !== 100 && (
               <button
                 onClick={handleRebalanceTo100}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 px-3 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-500/30 transition-colors shadow-sm"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 px-3 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-500/30 transition-colors"
               >
                 <SlidersHorizontal className="h-3.5 w-3.5" />
                 <span>Rebalance</span>
@@ -489,7 +672,7 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
 
             <button
               onClick={() => setShowAddCustomModal(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-800 px-3.5 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors shadow-sm"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-800 px-3.5 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors"
             >
               <Plus className="h-3.5 w-3.5 text-amber-400" />
               <span>Add Custom Line Item</span>
@@ -504,7 +687,7 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
               <AlertCircle className="h-4 w-4 shrink-0 text-amber-400" />
               <span>
                 <strong>Allocation Notice:</strong> Categories sum to{' '}
-                <strong className="underline font-mono">{totalPercentage}%</strong> (
+                <strong className="underline font-mono tabular-nums">{totalPercentage}%</strong> (
                 {totalPercentage > 100
                   ? `+${totalPercentage - 100}% over allocated total`
                   : `${100 - totalPercentage}% unallocated`}
@@ -513,7 +696,7 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
             </div>
             <button
               onClick={handleRebalanceTo100}
-              className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-zinc-950 hover:bg-amber-400 transition-colors shadow-sm"
+              className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-zinc-950 hover:bg-amber-400 transition-colors"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
               <span>Auto-Rebalance to 100%</span>
@@ -525,22 +708,27 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
         <div className="space-y-4">
           {budget.categories.map((cat) => {
             const color = CATEGORY_COLORS[cat.id] || '#F59E0B';
+            const catItemizedSum =
+              cat.lineItems && cat.lineItems.length > 0
+                ? cat.lineItems.reduce((s, li) => s + li.estimatedCost, 0)
+                : cat.allocatedAmount;
+
             return (
               <div
                 key={cat.id}
-                className="group rounded-xl border border-white/10 bg-zinc-950/70 p-5 transition-all duration-200 hover:border-white/20 hover:shadow-lg"
+                className="group rounded-xl border border-white/10 bg-zinc-950/70 p-5 transition-colors duration-200 hover:border-white/20"
               >
                 {/* Category Header Row */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2.5">
                       <span
-                        className="h-3 w-3 rounded-full shrink-0 shadow-sm"
+                        className="h-3 w-3 rounded-full shrink-0"
                         style={{ backgroundColor: color }}
                       />
                       <h4 className="text-base font-bold text-zinc-100">{cat.category}</h4>
-                      <span className="font-mono text-xs font-bold text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/40 tabular-nums">
-                        {cat.percentage}%
+                      <span className="font-mono text-xs font-semibold text-amber-400 tabular-nums">
+                        · {cat.percentage}% Share
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-zinc-400 leading-relaxed max-w-2xl">
@@ -559,7 +747,7 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
                         onChange={(e) =>
                           handlePercentageChange(cat.id, parseInt(e.target.value, 10))
                         }
-                        className="h-2 w-32 md:w-36 rounded-lg bg-zinc-800 accent-amber-500 cursor-pointer shadow-inner"
+                        className="h-2 w-32 md:w-36 rounded-lg bg-zinc-800 accent-amber-500 cursor-pointer"
                         title={`Adjust ${cat.category} percentage`}
                       />
                       <span className="font-mono text-xs font-bold text-zinc-300 w-10 text-right tabular-nums">
@@ -570,6 +758,9 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
                     <div className="text-right">
                       <div className="font-mono text-lg font-extrabold text-zinc-100 tabular-nums">
                         {formatCurrency(cat.allocatedAmount, budget.currency)}
+                      </div>
+                      <div className="text-[11px] font-mono tabular-nums text-zinc-400">
+                        Itemized: {formatCurrency(catItemizedSum, budget.currency)}
                       </div>
                     </div>
                   </div>
@@ -599,8 +790,8 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
                 {/* Line Items if present */}
                 {cat.lineItems && cat.lineItems.length > 0 && (
                   <div className="mt-3.5 pt-3 border-t border-white/5">
-                    <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400 font-bold block mb-2">
-                      Custom Line Item Quotes
+                    <span className="text-[11px] font-mono text-zinc-400 font-semibold block mb-2">
+                      Itemized Quotes & Line Items
                     </span>
                     <div className="space-y-1.5">
                       {cat.lineItems.map((item, itemIdx) => (
