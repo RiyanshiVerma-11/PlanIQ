@@ -341,19 +341,20 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
         className="flex-1 min-w-0 overflow-y-auto flex flex-col"
       >
         {/* Top Header Bar: Event Indicators, Quick Persona Switchers & AI Assistant Button */}
-        <header className="sticky top-0 z-30 w-full border-b border-white/10 bg-zinc-950/90 backdrop-blur-md">
+        <header className="sticky top-0 z-30 w-full border-b border-slate-800/80 bg-[#080b14]/85 backdrop-blur-xl">
           <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
             {/* Left: Active Event & Quick Problem-Statement Archetype Switcher */}
             <div className="flex items-center gap-3 min-w-0">
               {blueprint ? (
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="text-sm font-semibold text-zinc-100 truncate">
+                  <span className="flex h-2 w-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
+                  <span className="text-sm font-bold text-white truncate font-serif-title text-base tracking-tight">
                     {blueprint.constraints.eventName || blueprint.constraints.eventType}
                   </span>
-                  <span className="hidden sm:inline text-zinc-600" aria-hidden="true">
+                  <span className="hidden sm:inline text-slate-600" aria-hidden="true">
                     ·
                   </span>
-                  <span className="hidden sm:inline text-xs text-zinc-400 font-mono tabular-nums whitespace-nowrap">
+                  <span className="hidden sm:inline text-xs text-cyan-400 font-mono tabular-nums whitespace-nowrap bg-cyan-500/10 px-2.5 py-0.5 rounded-md border border-cyan-500/20 font-medium">
                     {formatCurrency(
                       blueprint.budgetBreakdown.totalBudget,
                       blueprint.budgetBreakdown.currency
@@ -362,7 +363,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                   </span>
                 </div>
               ) : (
-                <span className="text-sm font-medium text-zinc-400 truncate">
+                <span className="text-sm font-medium text-slate-400 truncate">
                   Event Command Center
                 </span>
               )}
@@ -371,13 +372,13 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
             {/* Center / Right: 3 Problem Statement Verticals Quick-Pills + AI Assistant + Profile */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               {/* Quick Vertical Switchers (Weddings, Birthdays, Community Events) */}
-              <div className="hidden lg:flex items-center gap-1.5 bg-zinc-900/80 border border-white/10 rounded-xl p-1">
+              <div className="hidden lg:flex items-center gap-1.5 bg-slate-900/90 border border-slate-800 rounded-xl p-1">
                 <button
                   onClick={() => handleSelectPreset('preset-fusion-wedding')}
-                  className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
+                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                     activePresetId === 'preset-fusion-wedding'
-                      ? 'bg-amber-500 text-zinc-950 font-bold'
-                      : 'text-zinc-400 hover:text-white'
+                      ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold shadow-md shadow-cyan-500/20'
+                      : 'text-slate-400 hover:text-white'
                   }`}
                   title="Load Wedding Blueprint"
                 >
@@ -385,10 +386,10 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                 </button>
                 <button
                   onClick={() => handleSelectPreset('preset-30th-birthday')}
-                  className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
+                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                     activePresetId === 'preset-30th-birthday'
-                      ? 'bg-amber-500 text-zinc-950 font-bold'
-                      : 'text-zinc-400 hover:text-white'
+                      ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold shadow-md shadow-cyan-500/20'
+                      : 'text-slate-400 hover:text-white'
                   }`}
                   title="Load Birthday Blueprint"
                 >
@@ -396,10 +397,10 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                 </button>
                 <button
                   onClick={() => handleSelectPreset('preset-tech-gala')}
-                  className={`px-2.5 py-1 text-xs rounded-lg transition-colors ${
+                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                     activePresetId === 'preset-tech-gala'
-                      ? 'bg-amber-500 text-zinc-950 font-bold'
-                      : 'text-zinc-400 hover:text-white'
+                      ? 'bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold shadow-md shadow-cyan-500/20'
+                      : 'text-slate-400 hover:text-white'
                   }`}
                   title="Load Community Event Blueprint"
                 >
@@ -410,27 +411,28 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
               {/* Trigger AI Co-Planner Drawer */}
               <button
                 onClick={() => setIsAssistantDrawerOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20 hover:border-amber-500/50 transition-colors shadow-sm"
+                className="btn-electric btn-shimmer inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold text-white shadow-md shadow-cyan-500/20 transition-all"
                 title="Open AI Planning Assistant"
               >
-                <Bot className="h-3.5 w-3.5 text-amber-400" />
+                <Bot className="h-3.5 w-3.5 text-white" />
                 <span className="hidden sm:inline">Ask AI Co-Planner</span>
                 <span className="sm:hidden">AI</span>
+                <span className="flex h-1.5 w-1.5 rounded-full bg-cyan-200 animate-ping" />
               </button>
 
               {/* User Profile Dropdown */}
               <div className="relative">
                 <button
                   onClick={() => setShowUserDropdown(!showUserDropdown)}
-                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-zinc-900/80 px-2.5 py-1.5 text-xs text-zinc-200 hover:border-white/20 hover:text-white transition-colors whitespace-nowrap shrink-0"
+                  className="flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-2.5 py-1.5 text-xs text-slate-200 hover:border-cyan-500/40 hover:text-white transition-all whitespace-nowrap shrink-0"
                 >
-                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-[11px] font-bold text-amber-400">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/30 to-indigo-600/20 border border-cyan-500/40 text-[11px] font-bold text-cyan-400">
                     {user.avatarInitials}
                   </div>
                   <span className="hidden sm:inline font-medium max-w-[120px] truncate">
                     {user.name}
                   </span>
-                  <ChevronDown className="h-3 w-3 text-zinc-400" />
+                  <ChevronDown className="h-3 w-3 text-slate-400" />
                 </button>
 
                 {showUserDropdown && (
@@ -796,14 +798,14 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
       {blueprint && activeTab !== 'tab-assistant' && !isAssistantDrawerOpen && (
         <button
           onClick={() => setIsAssistantDrawerOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full border border-amber-500/40 bg-zinc-900/90 backdrop-blur-xl px-4 py-3 text-xs font-bold text-amber-300 shadow-2xl hover:bg-zinc-800 hover:scale-105 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+          className="btn-shimmer glow-cyan-md fixed bottom-6 right-6 z-40 flex items-center gap-2.5 rounded-full border border-cyan-500/50 bg-[#0a0e1a]/95 backdrop-blur-2xl px-4.5 py-3 text-xs font-bold text-white shadow-2xl hover:border-cyan-400 hover:scale-105 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
           title="Open AI Co-Planner Drawer"
         >
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-zinc-950 font-bold">
-            <Sparkles className="h-3.5 w-3.5" />
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold shadow-sm shadow-cyan-500/40">
+            <Sparkles className="h-3.5 w-3.5 fill-white" />
           </div>
-          <span>Ask AI Co-Planner</span>
-          <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="font-bold tracking-wide">Ask AI Co-Planner</span>
+          <span className="flex h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
         </button>
       )}
 

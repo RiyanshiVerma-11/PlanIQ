@@ -129,57 +129,58 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
       {/* Top Row: 4 Refined Glassmorphic KPI Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {/* KPI Card 1: Active Events */}
-        <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-5 backdrop-blur-md flex flex-col justify-between">
+        <div className="glass-card-interactive rounded-2xl p-5 flex flex-col justify-between border border-white/10 hover:border-amber-500/40 group">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <span className="text-xs uppercase tracking-wider text-zinc-400 font-medium">
+              <span className="text-xs uppercase tracking-wider text-amber-400/90 font-semibold font-mono">
                 Active Events
               </span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 border border-white/10 text-zinc-300">
-                <Layers className="h-4 w-4" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 shadow-sm shadow-amber-500/10 group-hover:scale-105 transition-transform">
+                <Layers className="h-4.5 w-4.5" />
               </div>
             </div>
-            <div className="text-2xl font-semibold tracking-tight text-white font-mono tabular-nums">
-              {metrics.activeEventCount} Blueprints
+            <div className="text-2xl font-bold tracking-tight text-white font-mono tabular-nums">
+              {metrics.activeEventCount} <span className="text-lg font-normal text-stone-300">Blueprints</span>
             </div>
-            <p className="mt-1.5 text-xs text-zinc-400 font-mono tabular-nums">
-              {metrics.totalGuestsAcrossPortfolio.toLocaleString()} total confirmed guests
+            <p className="mt-1.5 text-xs text-stone-400 font-mono tabular-nums flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 inline-block animate-pulse" />
+              <span>{metrics.totalGuestsAcrossPortfolio.toLocaleString()} total confirmed guests</span>
             </p>
           </div>
 
           <div className="mt-5 pt-3.5 border-t border-white/10 flex items-center justify-between text-xs">
-            <span className="text-zinc-400 truncate max-w-[165px]">
-              Focused: <strong className="text-zinc-200 font-medium">{metrics.activeEventTitle}</strong>
+            <span className="text-stone-400 truncate max-w-[165px]">
+              Focused: <strong className="text-amber-300 font-medium">{metrics.activeEventTitle}</strong>
             </span>
-            <span className="font-mono tabular-nums text-zinc-300 shrink-0">
+            <span className="font-mono tabular-nums text-stone-300 shrink-0 bg-stone-950/60 px-2 py-0.5 rounded-md border border-stone-800">
               {activeBlueprint.constraints.timeRemainingMonths} mo window
             </span>
           </div>
         </div>
 
         {/* KPI Card 2: Upcoming Deadlines (with Mini Progress Bar) */}
-        <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-5 backdrop-blur-md flex flex-col justify-between">
+        <div className="glass-card-interactive rounded-2xl p-5 flex flex-col justify-between border border-white/10 hover:border-cyan-500/40 group">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <span className="text-xs uppercase tracking-wider text-zinc-400 font-medium">
+              <span className="text-xs uppercase tracking-wider text-cyan-400/90 font-semibold font-mono">
                 Upcoming Deadlines
               </span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 border border-white/10 text-zinc-300">
-                <Clock className="h-4 w-4" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 shadow-sm shadow-cyan-500/10 group-hover:scale-105 transition-transform">
+                <Clock className="h-4.5 w-4.5" />
               </div>
             </div>
-            <div className="text-2xl font-semibold tracking-tight text-white font-mono tabular-nums">
-              {metrics.pendingTasks} Pending
+            <div className="text-2xl font-bold tracking-tight text-white font-mono tabular-nums">
+              {metrics.pendingTasks} <span className="text-lg font-normal text-stone-300">Pending</span>
             </div>
-            <p className="mt-1.5 text-xs text-zinc-400 font-mono tabular-nums">
-              {metrics.criticalPendingCount} critical · {metrics.completedTasks}/{metrics.totalTasks} tasks complete
+            <p className="mt-1.5 text-xs text-stone-400 font-mono tabular-nums">
+              <span className="text-amber-300 font-semibold">{metrics.criticalPendingCount} critical</span> · {metrics.completedTasks}/{metrics.totalTasks} complete
             </p>
 
             {/* Mini Progress Bar Micro-Indicator */}
             <div className="mt-3">
-              <div className="h-1.5 w-full rounded-full bg-zinc-800 overflow-hidden">
+              <div className="h-2 w-full rounded-full bg-stone-950 overflow-hidden border border-stone-800">
                 <div
-                  className="h-full bg-zinc-200 transition-all duration-200"
+                  className="h-full bg-gradient-to-r from-amber-500 via-yellow-400 to-emerald-400 shadow-sm shadow-amber-500/30 transition-all duration-300"
                   style={{ width: `${Math.max(4, metrics.completionPercentage)}%` }}
                 />
               </div>
@@ -187,13 +188,14 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
           </div>
 
           <div className="mt-4 pt-3.5 border-t border-white/10 flex items-center justify-between text-xs">
-            <span className="font-mono tabular-nums text-zinc-300">
+            <span className="font-mono tabular-nums text-emerald-400 font-semibold flex items-center gap-1">
+              <CheckCircle2 className="h-3.5 w-3.5" />
               {metrics.completionPercentage}% readiness
             </span>
             <button
               type="button"
               onClick={() => onNavigateSection('section-timeline')}
-              className="text-zinc-300 hover:text-white font-medium inline-flex items-center gap-1 transition-colors whitespace-nowrap shrink-0"
+              className="text-stone-300 hover:text-cyan-300 font-medium inline-flex items-center gap-1 transition-colors whitespace-nowrap shrink-0"
             >
               <span>Day Schedule</span>
               <ArrowUpRight className="h-3 w-3" />
@@ -202,37 +204,37 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
         </div>
 
         {/* KPI Card 3: Budget Utilization (with Clean Committed Percentage Indicator) */}
-        <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-5 backdrop-blur-md flex flex-col justify-between">
+        <div className="glass-card-interactive rounded-2xl p-5 flex flex-col justify-between border border-white/10 hover:border-emerald-500/40 group">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <span className="text-xs uppercase tracking-wider text-zinc-400 font-medium">
+              <span className="text-xs uppercase tracking-wider text-emerald-400/90 font-semibold font-mono">
                 Budget Utilization
               </span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 border border-white/10 text-zinc-300">
-                <DollarSign className="h-4 w-4" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shadow-sm shadow-emerald-500/10 group-hover:scale-105 transition-transform">
+                <DollarSign className="h-4.5 w-4.5" />
               </div>
             </div>
             <div className="flex items-baseline justify-between gap-2">
-              <div className="text-2xl font-semibold tracking-tight text-white font-mono tabular-nums">
+              <div className="text-2xl font-bold tracking-tight text-white font-mono tabular-nums">
                 {formatCurrency(metrics.committedBudgetAmount, metrics.activeCurrency)}
               </div>
-              <span className="bg-zinc-800 text-zinc-200 ring-1 ring-white/10 px-2 py-0.5 rounded-md text-[11px] font-mono tabular-nums shrink-0">
+              <span className="bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-md text-[11px] font-mono tabular-nums shrink-0 font-semibold">
                 {metrics.committedUtilizationPercent}% Committed
               </span>
             </div>
-            <p className="mt-1.5 text-xs text-zinc-400 font-mono tabular-nums">
+            <p className="mt-1.5 text-xs text-stone-400 font-mono tabular-nums">
               of {formatCurrency(metrics.activeBudgetTotal, metrics.activeCurrency)} total capex
             </p>
           </div>
 
           <div className="mt-5 pt-3.5 border-t border-white/10 flex items-center justify-between text-xs">
-            <span className="text-zinc-400 font-mono tabular-nums">
+            <span className="text-emerald-400/90 font-mono tabular-nums text-[11px]">
               Reserve: {formatCurrency(metrics.contingencyReserveAmount, metrics.activeCurrency)} ({metrics.contingencyPercent}%)
             </span>
             <button
               type="button"
               onClick={() => onNavigateSection('section-budget')}
-              className="text-zinc-300 hover:text-white font-medium inline-flex items-center gap-1 transition-colors whitespace-nowrap shrink-0"
+              className="text-stone-300 hover:text-emerald-300 font-medium inline-flex items-center gap-1 transition-colors whitespace-nowrap shrink-0"
             >
               <span>Budget & Sliders</span>
               <ArrowUpRight className="h-3 w-3" />
@@ -241,33 +243,33 @@ export const ProjectDashboard: React.FC<ProjectDashboardProps> = ({
         </div>
 
         {/* KPI Card 4: Unit Economics */}
-        <div className="bg-zinc-900/40 border border-white/10 rounded-2xl p-5 backdrop-blur-md flex flex-col justify-between">
+        <div className="glass-card-interactive rounded-2xl p-5 flex flex-col justify-between border border-white/10 hover:border-purple-500/40 group">
           <div>
             <div className="flex items-center justify-between gap-2 mb-3">
-              <span className="text-xs uppercase tracking-wider text-zinc-400 font-medium">
+              <span className="text-xs uppercase tracking-wider text-purple-400/90 font-semibold font-mono">
                 Unit Economics
               </span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5 border border-white/10 text-zinc-300">
-                <ShieldCheck className="h-4 w-4" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 shadow-sm shadow-purple-500/10 group-hover:scale-105 transition-transform">
+                <ShieldCheck className="h-4.5 w-4.5" />
               </div>
             </div>
-            <div className="text-2xl font-semibold tracking-tight text-white font-mono tabular-nums">
+            <div className="text-2xl font-bold tracking-tight text-white font-mono tabular-nums">
               {formatCurrency(metrics.activePerGuestCost, metrics.activeCurrency)}
-              <span className="text-sm font-normal text-zinc-400"> / guest</span>
+              <span className="text-sm font-normal text-stone-400"> / guest</span>
             </div>
-            <p className="mt-1.5 text-xs text-zinc-400 font-mono tabular-nums">
+            <p className="mt-1.5 text-xs text-stone-400 font-mono tabular-nums">
               {metrics.vendorCategoriesCount} vendor pillars · {metrics.runOfShowBlocksCount} ROS blocks
             </p>
           </div>
 
           <div className="mt-5 pt-3.5 border-t border-white/10 flex items-center justify-between text-xs">
-            <span className="font-mono tabular-nums text-zinc-400">
+            <span className="font-mono tabular-nums text-purple-300 text-[11px]">
               Allocation: {metrics.allocationSumPercent}%
             </span>
             <button
               type="button"
               onClick={() => onNavigateSection('section-vendors')}
-              className="text-zinc-300 hover:text-white font-medium inline-flex items-center gap-1 transition-colors whitespace-nowrap shrink-0"
+              className="text-stone-300 hover:text-purple-300 font-medium inline-flex items-center gap-1 transition-colors whitespace-nowrap shrink-0"
             >
               <span>Vendor Kit</span>
               <ArrowUpRight className="h-3 w-3" />

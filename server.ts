@@ -468,14 +468,48 @@ Instructions:
           contents: prompt,
           config: {
             responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                reply: { type: Type.STRING },
+                suggestions: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING },
+                },
+                actionSuggestion: {
+                  type: Type.OBJECT,
+                  properties: {
+                    type: { type: Type.STRING },
+                    label: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                  },
+                  required: ['type', 'label', 'description'],
+                },
+              },
+              required: ['reply', 'suggestions'],
+            },
           },
         }),
         timeoutPromise,
       ])) as any;
 
       if (aiResponse.text) {
-        const parsed = JSON.parse(aiResponse.text);
-        if (parsed.reply) {
+        let parsed: any = null;
+        try {
+          parsed = JSON.parse(aiResponse.text);
+        } catch {
+          const cleaned = aiResponse.text
+            .replace(/^```json\s*/i, '')
+            .replace(/\s*```$/i, '')
+            .replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g, ' ');
+          try {
+            parsed = JSON.parse(cleaned);
+          } catch {
+            parsed = null;
+          }
+        }
+
+        if (parsed && parsed.reply) {
           const responsePayload: AssistantChatResponse = {
             reply: parsed.reply,
             suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions.slice(0, 3) : [],

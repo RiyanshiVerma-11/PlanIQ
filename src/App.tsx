@@ -102,7 +102,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-950 text-stone-100 font-sans antialiased">
+    <div className="min-h-screen bg-[#080b14] text-slate-100 font-sans antialiased">
       {currentView === 'landing' && (
         <ProductLandingPage
           onGoToLogin={() => setCurrentView('login')}
