@@ -139,7 +139,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
     if (useAI) {
       setIsLoadingAI(true);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25000);
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
 
       try {
         const res = await fetch('/api/generate-blueprint', {
@@ -305,7 +305,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
   };
 
   return (
-    <div className="h-screen w-full overflow-hidden bg-zinc-950 text-stone-100 flex font-sans selection:bg-amber-500/20 selection:text-amber-200 relative">
+    <div className="h-screen w-full overflow-hidden bg-[#080b14] text-slate-100 flex font-sans selection:bg-cyan-500/20 selection:text-cyan-200 relative">
       {/* Toast Notification Alert */}
       {toastMessage && (
         <div className="fixed top-5 right-5 z-50 flex items-center gap-2 rounded-xl border border-amber-500/40 bg-zinc-900/95 backdrop-blur-xl px-4 py-2.5 text-xs text-amber-200 shadow-2xl animate-fade-in">
@@ -408,17 +408,6 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
                 </button>
               </div>
 
-              {/* Trigger AI Co-Planner Drawer */}
-              <button
-                onClick={() => setIsAssistantDrawerOpen(true)}
-                className="btn-electric btn-shimmer inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold text-white shadow-md shadow-cyan-500/20 transition-all"
-                title="Open AI Planning Assistant"
-              >
-                <Bot className="h-3.5 w-3.5 text-white" />
-                <span className="hidden sm:inline">Ask AI Co-Planner</span>
-                <span className="sm:hidden">AI</span>
-                <span className="flex h-1.5 w-1.5 rounded-full bg-cyan-200 animate-ping" />
-              </button>
 
               {/* User Profile Dropdown */}
               <div className="relative">
@@ -794,19 +783,36 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
         </footer>
       </div>
 
-      {/* Floating "Ask AI Co-Planner" Action Pill (Bottom-Right) */}
-      {blueprint && activeTab !== 'tab-assistant' && !isAssistantDrawerOpen && (
-        <button
-          onClick={() => setIsAssistantDrawerOpen(true)}
-          className="btn-shimmer glow-cyan-md fixed bottom-6 right-6 z-40 flex items-center gap-2.5 rounded-full border border-cyan-500/50 bg-[#0a0e1a]/95 backdrop-blur-2xl px-4.5 py-3 text-xs font-bold text-white shadow-2xl hover:border-cyan-400 hover:scale-105 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
-          title="Open AI Co-Planner Drawer"
-        >
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-indigo-600 text-white font-bold shadow-sm shadow-cyan-500/40">
-            <Sparkles className="h-3.5 w-3.5 fill-white" />
-          </div>
-          <span className="font-bold tracking-wide">Ask AI Co-Planner</span>
-          <span className="flex h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-        </button>
+      {/* Floating "Ask AI Co-Planner" Action Logo (Bottom-Right Corner) */}
+      {!isAssistantDrawerOpen && activeTab !== 'tab-assistant' && (
+        <div className="fixed bottom-6 right-6 z-50 pointer-events-none">
+          <button
+            type="button"
+            onClick={() => setIsAssistantDrawerOpen(true)}
+            className="group pointer-events-auto relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 via-indigo-500 to-violet-600 p-0.5 shadow-[0_0_25px_rgba(6,182,212,0.45)] hover:shadow-[0_0_35px_rgba(6,182,212,0.7)] hover:scale-110 active:scale-95 transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+            title="Ask AI Co-Planner"
+            aria-label="Ask AI Co-Planner"
+          >
+            {/* Inner background icon frame */}
+            <div className="flex h-full w-full items-center justify-center rounded-[14px] bg-[#090d1a] border border-cyan-500/40 group-hover:border-cyan-300 group-hover:bg-[#0c1224] transition-all">
+              <div className="relative flex items-center justify-center">
+                <Bot className="h-6 w-6 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
+                <Sparkles className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 text-cyan-300 fill-cyan-400 animate-pulse" />
+              </div>
+            </div>
+
+            {/* Glowing online pulse badge */}
+            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-400 ring-2 ring-[#080b14]" />
+            </span>
+
+            {/* Hover tooltip label */}
+            <div className="pointer-events-none absolute right-full mr-3 hidden whitespace-nowrap rounded-lg border border-cyan-500/30 bg-[#0d1322]/95 px-3 py-1.5 text-xs font-semibold text-cyan-200 shadow-xl backdrop-blur-md transition-opacity duration-200 group-hover:flex">
+              <span>Ask AI Co-Planner</span>
+            </div>
+          </button>
+        </div>
       )}
 
       {/* Slide-over Assistant Drawer */}

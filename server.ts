@@ -109,7 +109,7 @@ Deliverables Required:
    - For each: booking deadline, exact scope of work bullet points, staffing/equipment benchmark, and 3 vetting questions with why it matters, green flag answer, and red flag answer to avoid hidden fees.`;
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Gemini synthesis timeout')), 25000)
+        setTimeout(() => reject(new Error('Gemini synthesis timeout')), 45000)
       );
 
       const aiResponse = (await Promise.race([
@@ -541,8 +541,6 @@ async function startServer() {
     const vite = await createServer({
       server: {
         middlewareMode: true,
-        hmr: false,
-        watch: null,
       },
       appType: 'spa',
     });
