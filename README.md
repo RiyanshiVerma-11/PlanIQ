@@ -1,10 +1,13 @@
 # PlanIQ Studio — GenAI Celebration & Event Planner
 
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-planiq--2t31.onrender.com-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://planiq-2t31.onrender.com)
 [![Hackathon Submission: Challenge 5](https://img.shields.io/badge/Hackathon-Challenge%205%3A%20Celebration%20%26%20Event%20Planner-amber)](https://hack2skill.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org)
 [![React](https://img.shields.io/badge/React-19-cyan)](https://react.dev)
 [![Gemini 2.5 Flash](https://img.shields.io/badge/GenAI-Google%20Gemini-orange)](https://deepmind.google/technologies/gemini)
 [![Tests Passing](https://img.shields.io/badge/Tests-28%2F28%20Passing-emerald)](https://nodejs.org)
+
+> 🌐 **Live Application URL:** [https://planiq-2t31.onrender.com](https://planiq-2t31.onrender.com)
 
 **PlanIQ Studio** is a GenAI-powered planning assistant engineered for **[Challenge 5] Celebration & Event Planner**. It empowers users to seamlessly orchestrate **Weddings**, **Milestone Birthdays**, and **Community Gatherings** with dynamic 7-pillar budgets, backward timeline milestones, day-of run-of-shows, anti-hidden-fee vendor checklists, and bespoke creative concepts.
 
@@ -160,6 +163,10 @@ The project includes **28 automated unit and integration tests** executing via N
 ---
 
 ## 6. Getting Started & Commands
+
+### 🚀 Live Production Deployment
+Experience the application live without any local setup:
+👉 **[https://planiq-2t31.onrender.com](https://planiq-2t31.onrender.com)**
 
 ### Prerequisites
 - **Node.js** `>= 20.x`
