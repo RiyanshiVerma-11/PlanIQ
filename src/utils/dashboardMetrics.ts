@@ -61,6 +61,14 @@ export interface BudgetUtilizationSummary {
   pillars: BudgetUtilizationPillar[];
 }
 
+/**
+ * Aggregates high-level portfolio KPIs across multiple events or presets,
+ * computing total attendees, overall commitment, contingency reserve, and task completion.
+ *
+ * @param portfolio - List of event blueprints in the user's workspace
+ * @param activeBlueprint - The currently active event blueprint
+ * @returns Comprehensive KPI metrics for the executive dashboard
+ */
 export function summarizePortfolioMetrics(
   portfolio: EventBlueprint[],
   activeBlueprint: EventBlueprint
@@ -122,6 +130,14 @@ export function summarizePortfolioMetrics(
   };
 }
 
+/**
+ * Extracts and sorts actionable deadlines from blueprint milestones,
+ * prioritizing uncompleted critical tasks.
+ *
+ * @param blueprint - The target event blueprint
+ * @param priorityFilter - Optional filter to narrow tasks by priority level
+ * @returns Sorted array of deadline items
+ */
 export function extractUpcomingDeadlines(
   blueprint: EventBlueprint,
   priorityFilter: 'All' | 'Critical' | 'High' | 'Medium' = 'All'
@@ -162,6 +178,12 @@ export function extractUpcomingDeadlines(
   });
 }
 
+/**
+ * Computes allocation pillars, contingency reserves, and committed funding distribution.
+ *
+ * @param blueprint - The target event blueprint
+ * @returns Breakdown of budget utilization pillars and core metrics
+ */
 export function summarizeBudgetUtilization(
   blueprint: EventBlueprint
 ): BudgetUtilizationSummary {
@@ -228,6 +250,13 @@ export interface SpendingVsAllocationDatum {
   status: 'under' | 'matched' | 'over';
 }
 
+/**
+ * Transforms budget category allocations and line-item actual costs into
+ * normalized chart data suitable for Recharts visualizations.
+ *
+ * @param budget - The budget breakdown object containing category allocations and line items
+ * @returns Array of chart datum objects with calculated variances and utilization ratios
+ */
 export function buildSpendingVsAllocationChartData(
   budget: EventBlueprint['budgetBreakdown']
 ): SpendingVsAllocationDatum[] {

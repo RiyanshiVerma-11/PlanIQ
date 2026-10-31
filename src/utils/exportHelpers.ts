@@ -1,6 +1,13 @@
 import type { EventBlueprint } from '../types/blueprint.ts';
 import { formatCurrency } from './blueprintEngine.ts';
 
+/**
+ * Generates an exhaustive, beautifully-formatted Markdown Dossier
+ * encapsulating concept, budget allocation, milestones, run of show, and vendor kits.
+ *
+ * @param blueprint - The complete event blueprint
+ * @returns Formatted Markdown string suitable for export or printing
+ */
 export function generateMarkdown(blueprint: EventBlueprint): string {
   const { constraints, creativeConcept, budgetBreakdown, milestones, runOfShow, vendorVettingKit } =
     blueprint;
@@ -82,6 +89,13 @@ export function generateMarkdown(blueprint: EventBlueprint): string {
   return md;
 }
 
+/**
+ * Encodes the event's day-of Run of Show into RFC 5545 iCalendar format (.ics),
+ * compatible with Google Calendar, Apple Calendar, and Outlook.
+ *
+ * @param blueprint - Event blueprint with run-of-show schedule blocks
+ * @returns RFC 5545 formatted VCALENDAR payload
+ */
 export function generateICS(blueprint: EventBlueprint): string {
   const { constraints, runOfShow } = blueprint;
 
@@ -140,6 +154,13 @@ export function generateICS(blueprint: EventBlueprint): string {
   return lines.join('\r\n');
 }
 
+/**
+ * Initiates an in-browser file download from a memory blob.
+ *
+ * @param content - Text content to download
+ * @param filename - Target filename for the downloaded artifact
+ * @param mimeType - MIME type for the file (e.g. text/markdown, text/calendar)
+ */
 export function downloadBlob(content: string, filename: string, mimeType: string): void {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);

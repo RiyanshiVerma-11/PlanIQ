@@ -20,6 +20,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  type TooltipContentProps,
   Legend,
   Cell,
 } from 'recharts';
@@ -279,12 +280,9 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
   const renderCustomBarTooltip = ({
     active,
     payload,
-  }: {
-    active?: boolean;
-    payload?: Array<{ payload: SpendingVsAllocationDatum }>;
-  }) => {
+  }: TooltipContentProps) => {
     if (!active || !payload || payload.length === 0) return null;
-    const data = payload[0].payload;
+    const data = payload[0].payload as SpendingVsAllocationDatum;
     const isOver = data.actualSpend > data.allocatedAmount;
     const diff = Math.abs(data.variance);
 
@@ -524,7 +522,7 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
                 width={80}
               />
               <Tooltip
-                content={renderCustomBarTooltip as any}
+                content={renderCustomBarTooltip}
                 cursor={{ fill: 'rgba(255,255,255,0.04)' }}
               />
               <Legend
@@ -749,6 +747,11 @@ export const DeliverableBudget: React.FC<DeliverableBudgetProps> = ({
                         }
                         className="h-2 w-32 md:w-36 rounded-lg bg-zinc-800 accent-amber-500 cursor-pointer"
                         title={`Adjust ${cat.category} percentage`}
+                        aria-label={`Adjust ${cat.category} allocation percentage`}
+                        aria-valuemin={2}
+                        aria-valuemax={50}
+                        aria-valuenow={cat.percentage}
+                        aria-valuetext={`${cat.percentage}% (${formatCurrency(cat.allocatedAmount, budget.currency)})`}
                       />
                       <span className="font-mono text-xs font-bold text-zinc-300 w-10 text-right tabular-nums">
                         {cat.percentage}%

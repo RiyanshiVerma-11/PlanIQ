@@ -1,5 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { ProductLandingPage } from './components/ProductLandingPage.tsx';
+import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import type { AuthUser } from './types/auth.ts';
 
 // Code-split heavy workspace and login views for high efficiency & minimal initial bundle
@@ -117,34 +118,36 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#080b14] text-slate-100 font-sans antialiased">
-      {currentView === 'landing' && (
-        <ProductLandingPage
-          onGoToLogin={() => setCurrentView('login')}
-          onQuickStartPreset={handleQuickStartPreset}
-          onLaunchStudioDirectly={handleLaunchStudioDirectly}
-        />
-      )}
-
-      {currentView === 'login' && (
-        <Suspense fallback={<ViewLoadingFallback />}>
-          <LoginPage
-            onLoginSuccess={handleLoginSuccess}
-            onBackToLanding={() => setCurrentView('landing')}
-            defaultEmail="riyanshiverma46@gmail.com"
+    <ErrorBoundary fallbackTitle="PlanIQ Application Error">
+      <div className="min-h-screen bg-[#080b14] text-slate-100 font-sans antialiased">
+        {currentView === 'landing' && (
+          <ProductLandingPage
+            onGoToLogin={() => setCurrentView('login')}
+            onQuickStartPreset={handleQuickStartPreset}
+            onLaunchStudioDirectly={handleLaunchStudioDirectly}
           />
-        </Suspense>
-      )}
+        )}
 
-      {currentView === 'app' && authUser && (
-        <Suspense fallback={<ViewLoadingFallback />}>
-          <AppWorkspace
-            user={authUser}
-            onLogout={handleLogout}
-            initialPresetId={selectedPresetId}
-          />
-        </Suspense>
-      )}
-    </div>
+        {currentView === 'login' && (
+          <Suspense fallback={<ViewLoadingFallback />}>
+            <LoginPage
+              onLoginSuccess={handleLoginSuccess}
+              onBackToLanding={() => setCurrentView('landing')}
+              defaultEmail="riyanshiverma46@gmail.com"
+            />
+          </Suspense>
+        )}
+
+        {currentView === 'app' && authUser && (
+          <Suspense fallback={<ViewLoadingFallback />}>
+            <AppWorkspace
+              user={authUser}
+              onLogout={handleLogout}
+              initialPresetId={selectedPresetId}
+            />
+          </Suspense>
+        )}
+      </div>
+    </ErrorBoundary>
   );
 }

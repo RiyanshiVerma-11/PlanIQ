@@ -20,6 +20,7 @@ import {
 import { DeliverableConcept } from './DeliverableConcept.tsx';
 import { StudioSidebar, type WorkspaceTabId } from './StudioSidebar.tsx';
 import { ExportHandoverSection } from './ExportHandoverSection.tsx';
+import { ErrorBoundary } from './ErrorBoundary.tsx';
 
 // Code-split heavy views and modals for peak frontend efficiency
 const ProjectDashboard = React.lazy(() =>
@@ -437,218 +438,239 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
               {/* TAB 1: Dedicated Executive Dashboard */}
               {activeTab === 'tab-dashboard' && (
                 <div role="tabpanel" aria-label="Tab: Executive Dashboard" className="space-y-8 animate-fade-in">
-                  <ProjectDashboard
-                    portfolio={portfolioList}
-                    activeBlueprint={blueprint}
-                    onSelectBlueprint={(blueprintId) => handleSelectPreset(blueprintId)}
-                    onNavigateSection={handleNavigateSection}
-                    onToggleTask={handleToggleTask}
-                    onNewEvent={() => setIsWizardOpen(true)}
-                  />
+                  <ErrorBoundary fallbackTitle="Executive Dashboard temporarily unavailable">
+                    <ProjectDashboard
+                      portfolio={portfolioList}
+                      activeBlueprint={blueprint}
+                      onSelectBlueprint={(blueprintId) => handleSelectPreset(blueprintId)}
+                      onNavigateSection={handleNavigateSection}
+                      onToggleTask={handleToggleTask}
+                      onNewEvent={() => setIsWizardOpen(true)}
+                    />
+                  </ErrorBoundary>
                 </div>
               )}
 
               {/* TAB 2: Creative Concept & Personalized Ideas */}
               {activeTab === 'tab-concept' && (
                 <div role="tabpanel" aria-label="Tab: Concept & Ideas" className="space-y-8 animate-fade-in">
-                  {/* Event Executive Overview Banner */}
-                  <div
-                    id="section-overview"
-                    className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-6 md:p-8"
-                  >
-                    <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5 border-b border-white/10 pb-6">
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400 mb-2">
-                          <span className="text-amber-400 font-semibold">
-                            Executive Dossier
-                          </span>
-                          <span aria-hidden="true">·</span>
-                          <span className="font-mono tabular-nums">
-                            Revision {blueprint.version}
-                          </span>
-                          <span aria-hidden="true">·</span>
-                          <span>
-                            {generationSource === 'gemini-3.8-flash'
-                              ? 'AI-Synthesized Blueprint'
-                              : generationSource === 'algorithmic-dynamic'
-                              ? 'Dynamic Algorithmic Blueprint'
-                              : 'Curated Master Archetype'}
-                          </span>
+                  <ErrorBoundary fallbackTitle="Concept & Ideas view encountered an issue">
+                    {/* Event Executive Overview Banner */}
+                    <div
+                      id="section-overview"
+                      className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 p-6 md:p-8"
+                    >
+                      <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5 border-b border-white/10 pb-6">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400 mb-2">
+                            <span className="text-amber-400 font-semibold">
+                              Executive Dossier
+                            </span>
+                            <span aria-hidden="true">·</span>
+                            <span className="font-mono tabular-nums">
+                              Revision {blueprint.version}
+                            </span>
+                            <span aria-hidden="true">·</span>
+                            <span>
+                              {generationSource === 'gemini-3.8-flash'
+                                ? 'AI-Synthesized Blueprint'
+                                : generationSource === 'algorithmic-dynamic'
+                                ? 'Dynamic Algorithmic Blueprint'
+                                : 'Curated Master Archetype'}
+                            </span>
+                          </div>
+
+                          <h1 className="font-serif-title text-3xl sm:text-4xl font-normal text-zinc-100 tracking-tight">
+                            {blueprint.constraints.eventName || blueprint.constraints.eventType}
+                          </h1>
+                          <p className="mt-2 text-xs sm:text-sm text-zinc-300">
+                            Vertical:{' '}
+                            <strong className="text-zinc-100 font-semibold">
+                              {blueprint.constraints.eventType}
+                            </strong>{' '}
+                            · Venue:{' '}
+                            <strong className="text-zinc-100 font-semibold">
+                              {blueprint.constraints.locationSetting}
+                            </strong>{' '}
+                            · Theme:{' '}
+                            <strong className="text-zinc-100 font-semibold">
+                              {blueprint.constraints.keyTheme}
+                            </strong>
+                          </p>
                         </div>
 
-                        <h1 className="font-serif-title text-3xl sm:text-4xl font-normal text-zinc-100 tracking-tight">
-                          {blueprint.constraints.eventName || blueprint.constraints.eventType}
-                        </h1>
-                        <p className="mt-2 text-xs sm:text-sm text-zinc-300">
-                          Vertical:{' '}
-                          <strong className="text-zinc-100 font-semibold">
-                            {blueprint.constraints.eventType}
-                          </strong>{' '}
-                          · Venue:{' '}
-                          <strong className="text-zinc-100 font-semibold">
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap items-center gap-3 shrink-0">
+                          <button
+                            onClick={() => setIsEditModalOpen(true)}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors"
+                          >
+                            <Edit3 className="h-3.5 w-3.5 text-amber-400" />
+                            <span>Edit Parameters</span>
+                          </button>
+                          <button
+                            onClick={() => setIsExportModalOpen(true)}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-zinc-950 hover:bg-amber-400 transition-colors"
+                          >
+                            <Printer className="h-3.5 w-3.5" />
+                            <span>Export Binder / ICS</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* High-Contrast Quick Metrics Strip */}
+                      <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3.5 text-xs">
+                        <div className="rounded-xl bg-zinc-950/70 border border-white/10 p-3.5" role="region" aria-label="Total event budget breakdown">
+                          <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] mb-1 font-medium">
+                            <DollarSign className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
+                            <span>Total Budget</span>
+                          </div>
+                          <div className="font-mono text-base sm:text-lg font-bold text-zinc-100 tabular-nums">
+                            {formatCurrency(
+                              blueprint.budgetBreakdown.totalBudget,
+                              blueprint.budgetBreakdown.currency
+                            )}
+                          </div>
+                          <div className="text-[11px] text-zinc-400 font-mono tabular-nums mt-0.5">
+                            <span className="sr-only">Average cost per attendee: </span>
+                            {formatCurrency(
+                              blueprint.budgetBreakdown.perGuestCost,
+                              blueprint.budgetBreakdown.currency
+                            )}{' '}
+                            / guest
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl bg-zinc-950/70 border border-white/10 p-3.5" role="region" aria-label="Confirmed guest headcount">
+                          <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] mb-1 font-medium">
+                            <Users className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
+                            <span>Guest Count</span>
+                          </div>
+                          <div className="font-mono text-base sm:text-lg font-bold text-zinc-100 tabular-nums">
+                            {blueprint.constraints.guestCount} Guests
+                          </div>
+                          <div className="text-[11px] text-zinc-400 mt-0.5 truncate">
+                            <span className="sr-only">Headcount status: </span>
+                            Confirmed capacity
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl bg-zinc-950/70 border border-white/10 p-3.5" role="region" aria-label="Venue location setting">
+                          <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] mb-1 font-medium">
+                            <MapPin className="h-3.5 w-3.5 text-cyan-400" aria-hidden="true" />
+                            <span>Venue Setting</span>
+                          </div>
+                          <div className="font-semibold text-zinc-100 truncate text-xs sm:text-sm">
                             {blueprint.constraints.locationSetting}
-                          </strong>{' '}
-                          · Theme:{' '}
-                          <strong className="text-zinc-100 font-semibold">
-                            {blueprint.constraints.keyTheme}
-                          </strong>
-                        </p>
-                      </div>
+                          </div>
+                          <div className="text-[11px] text-zinc-400 mt-0.5">
+                            <span className="sr-only">Location type: </span>
+                            Spatial environment
+                          </div>
+                        </div>
 
-                      {/* Action Buttons */}
-                      <div className="flex flex-wrap items-center gap-3 shrink-0">
-                        <button
-                          onClick={() => setIsEditModalOpen(true)}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 hover:text-white transition-colors"
-                        >
-                          <Edit3 className="h-3.5 w-3.5 text-amber-400" />
-                          <span>Edit Parameters</span>
-                        </button>
-                        <button
-                          onClick={() => setIsExportModalOpen(true)}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-zinc-950 hover:bg-amber-400 transition-colors"
-                        >
-                          <Printer className="h-3.5 w-3.5" />
-                          <span>Export Binder / ICS</span>
-                        </button>
-                      </div>
-                    </div>
+                        <div className="rounded-xl bg-zinc-950/70 border border-white/10 p-3.5" role="region" aria-label="Planning timeframe horizon">
+                          <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] mb-1 font-medium">
+                            <Clock className="h-3.5 w-3.5 text-purple-400" aria-hidden="true" />
+                            <span>Planning Horizon</span>
+                          </div>
+                          <div className="font-mono text-base sm:text-lg font-bold text-zinc-100 tabular-nums">
+                            {blueprint.constraints.timeRemainingMonths} Months
+                          </div>
+                          <div className="text-[11px] text-zinc-400 mt-0.5">
+                            <span className="sr-only">Schedule window: </span>
+                            Execution window
+                          </div>
+                        </div>
 
-                    {/* High-Contrast Quick Metrics Strip */}
-                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3.5 text-xs">
-                      <div className="rounded-xl bg-zinc-950/70 border border-white/10 p-3.5">
-                        <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] mb-1 font-medium">
-                          <DollarSign className="h-3.5 w-3.5 text-emerald-400" />
-                          <span>Total Budget</span>
-                        </div>
-                        <div className="font-mono text-base sm:text-lg font-bold text-zinc-100 tabular-nums">
-                          {formatCurrency(
-                            blueprint.budgetBreakdown.totalBudget,
-                            blueprint.budgetBreakdown.currency
-                          )}
-                        </div>
-                        <div className="text-[11px] text-zinc-400 font-mono tabular-nums mt-0.5">
-                          {formatCurrency(
-                            blueprint.budgetBreakdown.perGuestCost,
-                            blueprint.budgetBreakdown.currency
-                          )}{' '}
-                          / guest
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl bg-zinc-950/70 border border-white/10 p-3.5">
-                        <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] mb-1 font-medium">
-                          <Users className="h-3.5 w-3.5 text-amber-400" />
-                          <span>Guest Count</span>
-                        </div>
-                        <div className="font-mono text-base sm:text-lg font-bold text-zinc-100 tabular-nums">
-                          {blueprint.constraints.guestCount} Guests
-                        </div>
-                        <div className="text-[11px] text-zinc-400 mt-0.5 truncate">
-                          Confirmed capacity
-                        </div>
-                      </div>
-
-                      <div className="rounded-xl bg-zinc-950/70 border border-white/10 p-3.5">
-                        <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] mb-1 font-medium">
-                          <MapPin className="h-3.5 w-3.5 text-cyan-400" />
-                          <span>Venue Setting</span>
-                        </div>
-                        <div className="font-semibold text-zinc-100 truncate text-xs sm:text-sm">
-                          {blueprint.constraints.locationSetting}
-                        </div>
-                        <div className="text-[11px] text-zinc-400 mt-0.5">Spatial environment</div>
-                      </div>
-
-                      <div className="rounded-xl bg-zinc-950/70 border border-white/10 p-3.5">
-                        <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] mb-1 font-medium">
-                          <Clock className="h-3.5 w-3.5 text-purple-400" />
-                          <span>Planning Horizon</span>
-                        </div>
-                        <div className="font-mono text-base sm:text-lg font-bold text-zinc-100 tabular-nums">
-                          {blueprint.constraints.timeRemainingMonths} Months
-                        </div>
-                        <div className="text-[11px] text-zinc-400 mt-0.5">Execution window</div>
-                      </div>
-
-                      <div className="col-span-2 sm:col-span-4 lg:col-span-1 rounded-xl bg-zinc-950/70 border border-white/10 p-3.5">
-                        <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] mb-1 font-medium">
-                          <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                          <span>Task Progress</span>
-                        </div>
-                        <div className="font-mono text-base sm:text-lg font-bold text-zinc-100 tabular-nums">
-                          {
-                            blueprint.milestones
-                              .flatMap((m) => m.tasks)
-                              .filter((t) => t.completed).length
-                          }{' '}
-                          / {blueprint.milestones.flatMap((m) => m.tasks).length} Tasks
-                        </div>
-                        <div className="text-[11px] text-zinc-400 font-mono tabular-nums mt-0.5">
-                          {blueprint.runOfShow.length} schedule cues
+                        <div className="col-span-2 sm:col-span-4 lg:col-span-1 rounded-xl bg-zinc-950/70 border border-white/10 p-3.5" role="region" aria-label="Milestone checklist completion rate">
+                          <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] mb-1 font-medium">
+                            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
+                            <span>Task Progress</span>
+                          </div>
+                          <div className="font-mono text-base sm:text-lg font-bold text-zinc-100 tabular-nums">
+                            {
+                              blueprint.milestones
+                                .flatMap((m) => m.tasks)
+                                .filter((t) => t.completed).length
+                            }{' '}
+                            / {blueprint.milestones.flatMap((m) => m.tasks).length} Tasks
+                          </div>
+                          <div className="text-[11px] text-zinc-400 font-mono tabular-nums mt-0.5">
+                            <span className="sr-only">Production cues count: </span>
+                            {blueprint.runOfShow.length} schedule cues
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Creative Concept & Personalized Ideas */}
-                  <div id="section-concept">
-                    <DeliverableConcept
-                      concept={blueprint.creativeConcept}
-                      eventType={blueprint.constraints.eventType}
-                    />
-                  </div>
+                    {/* Creative Concept & Personalized Ideas */}
+                    <div id="section-concept">
+                      <DeliverableConcept
+                        concept={blueprint.creativeConcept}
+                        eventType={blueprint.constraints.eventType}
+                      />
+                    </div>
+                  </ErrorBoundary>
                 </div>
               )}
 
               {/* TAB 3: Dynamic Budget Optimizer */}
               {activeTab === 'tab-budget' && (
                 <div role="tabpanel" aria-label="Tab: Budget Calculator" id="section-budget" className="animate-fade-in">
-                  <DeliverableBudget
-                    budget={blueprint.budgetBreakdown}
-                    onUpdateBudget={handleUpdateBudget}
-                    guestCount={blueprint.constraints.guestCount}
-                  />
+                  <ErrorBoundary fallbackTitle="Budget Calculator encountered an issue">
+                    <DeliverableBudget
+                      budget={blueprint.budgetBreakdown}
+                      onUpdateBudget={handleUpdateBudget}
+                      guestCount={blueprint.constraints.guestCount}
+                    />
+                  </ErrorBoundary>
                 </div>
               )}
 
               {/* TAB 4: Day-of Timeline & Backward Milestones */}
               {activeTab === 'tab-timeline' && (
                 <div role="tabpanel" aria-label="Tab: Day-of Timeline" id="section-timeline" className="animate-fade-in">
-                  <DeliverableTimeline
-                    milestones={blueprint.milestones}
-                    runOfShow={blueprint.runOfShow}
-                    onToggleTask={handleToggleTask}
-                    selectedRole={selectedRole}
-                    onSelectRole={(role) => setSelectedRole(role)}
-                  />
+                  <ErrorBoundary fallbackTitle="Timeline & Schedule view encountered an issue">
+                    <DeliverableTimeline
+                      milestones={blueprint.milestones}
+                      runOfShow={blueprint.runOfShow}
+                      onToggleTask={handleToggleTask}
+                      selectedRole={selectedRole}
+                      onSelectRole={(role) => setSelectedRole(role)}
+                    />
+                  </ErrorBoundary>
                 </div>
               )}
 
               {/* TAB 5: Vendor Sourcing Kit & Contract Defense */}
               {activeTab === 'tab-vendors' && (
                 <div role="tabpanel" aria-label="Tab: Vendor Kit" id="section-vendors" className="space-y-12 animate-fade-in">
-                  <DeliverableVendors
-                    vettingKit={blueprint.vendorVettingKit}
-                    currency={blueprint.budgetBreakdown.currency}
-                  />
-
-                  <div id="section-export">
-                    <ExportHandoverSection
-                      blueprint={blueprint}
-                      onOpenFullExportModal={() => setIsExportModalOpen(true)}
+                  <ErrorBoundary fallbackTitle="Vendor Sourcing Kit encountered an issue">
+                    <DeliverableVendors
+                      vettingKit={blueprint.vendorVettingKit}
+                      currency={blueprint.budgetBreakdown.currency}
                     />
-                  </div>
+
+                    <div id="section-export">
+                      <ExportHandoverSection
+                        blueprint={blueprint}
+                        onOpenFullExportModal={() => setIsExportModalOpen(true)}
+                      />
+                    </div>
+                  </ErrorBoundary>
                 </div>
               )}
 
               {/* TAB 6: Dedicated GenAI Co-Planner Assistant View */}
               {activeTab === 'tab-assistant' && (
                 <div role="tabpanel" aria-label="Tab: AI Planning Assistant" className="animate-fade-in">
-                  <AIPlanningAssistant
-                    blueprint={blueprint}
-                    onApplyAction={handleApplyAction}
-                  />
+                  <ErrorBoundary fallbackTitle="AI Planning Assistant encountered an issue">
+                    <AIPlanningAssistant
+                      blueprint={blueprint}
+                      onApplyAction={handleApplyAction}
+                    />
+                  </ErrorBoundary>
                 </div>
               )}
             </div>
@@ -723,12 +745,14 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
             aria-label="Close Assistant overlay"
           />
           <div className="relative pointer-events-auto w-full sm:w-[500px] md:w-[560px] h-full bg-[#080d1a] border-l border-cyan-500/30 shadow-[-20px_0_50px_rgba(0,0,0,0.8)] flex flex-col z-10 animate-fade-in">
-            <AIPlanningAssistant
-              blueprint={blueprint}
-              onApplyAction={handleApplyAction}
-              onClose={() => setIsAssistantDrawerOpen(false)}
-              isDrawer={true}
-            />
+            <ErrorBoundary fallbackTitle="AI Planning Assistant temporarily unavailable">
+              <AIPlanningAssistant
+                blueprint={blueprint}
+                onApplyAction={handleApplyAction}
+                onClose={() => setIsAssistantDrawerOpen(false)}
+                isDrawer={true}
+              />
+            </ErrorBoundary>
           </div>
         </div>
       )}

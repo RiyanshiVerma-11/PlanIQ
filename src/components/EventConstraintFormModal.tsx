@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, X, Loader2, ArrowRight } from 'lucide-react';
 import type { EventConstraints, CurrencyCode } from '../types/blueprint.ts';
+import { useFocusTrap } from '../hooks/useFocusTrap.ts';
 import { CURRENCIES } from '../utils/blueprintEngine.ts';
 
 interface EventConstraintFormModalProps {
@@ -18,6 +19,7 @@ export const EventConstraintFormModal: React.FC<EventConstraintFormModalProps> =
   initialConstraints,
   isLoadingAI,
 }) => {
+  const focusTrapRef = useFocusTrap(isOpen, onClose);
   const [eventType, setEventType] = useState(initialConstraints?.eventType || 'Modern Fusion Wedding');
   const [totalBudget, setTotalBudget] = useState(initialConstraints?.totalBudget?.toString() || '25000');
   const [currency, setCurrency] = useState<CurrencyCode>(initialConstraints?.currency || 'USD');
@@ -85,7 +87,7 @@ export const EventConstraintFormModal: React.FC<EventConstraintFormModalProps> =
             <Sparkles className="h-4 w-4" />
             <span>Event Logistics Director & Strategist</span>
           </div>
-          <h2 className="font-serif-title text-2xl md:text-3xl font-normal text-stone-100 mt-1">
+          <h2 id="constraint-modal-title" className="font-serif-title text-2xl md:text-3xl font-normal text-stone-100 mt-1">
             Configure Event Constraints
           </h2>
           <p className="mt-1 text-xs sm:text-sm text-stone-400">

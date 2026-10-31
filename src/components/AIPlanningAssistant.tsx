@@ -28,13 +28,24 @@ import { formatCurrency } from '../utils/blueprintEngine.ts';
 
 import { useAssistantChat } from '../hooks/useAssistantChat.ts';
 
+/**
+ * Props for the AIPlanningAssistant component.
+ */
 interface AIPlanningAssistantProps {
+  /** The current active event blueprint providing context for AI suggestions */
   blueprint: EventBlueprint;
+  /** Callback invoked when the user confirms applying an AI-recommended mutation */
   onApplyAction?: (action: AssistantActionSuggestion) => void;
+  /** Optional callback to close the assistant drawer if rendered as a slide-over panel */
   onClose?: () => void;
+  /** Flag denoting whether the assistant is rendered in a slide-over drawer vs full tab */
   isDrawer?: boolean;
 }
 
+/**
+ * GenAI Co-Planner Assistant component providing conversational intelligence,
+ * real-time contextual event problem-solving, budget optimization, and timeline adjustments.
+ */
 export const AIPlanningAssistant: React.FC<AIPlanningAssistantProps> = ({
   blueprint,
   onApplyAction,
@@ -123,7 +134,13 @@ export const AIPlanningAssistant: React.FC<AIPlanningAssistantProps> = ({
       </div>
 
       {/* Message History Thread */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 custom-scrollbar bg-[#080d1a]">
+      <div
+        className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 custom-scrollbar bg-[#080d1a]"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions text"
+        aria-label="Planning assistant conversation history"
+      >
         {messages.map((msg) => {
           const isUser = msg.sender === 'user';
           return (
@@ -195,6 +212,7 @@ export const AIPlanningAssistant: React.FC<AIPlanningAssistantProps> = ({
                         onClick={() => handleCopyText(msg.id, msg.text)}
                         className="inline-flex items-center gap-1 hover:text-cyan-300 transition-colors"
                         title="Copy text"
+                        aria-label="Copy assistant message to clipboard"
                       >
                         {copiedId === msg.id ? (
                           <>
@@ -214,13 +232,14 @@ export const AIPlanningAssistant: React.FC<AIPlanningAssistantProps> = ({
 
                 {/* Follow-up Suggestions Chips */}
                 {!isUser && msg.suggestions && msg.suggestions.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
+                  <div className="mt-3 flex flex-wrap gap-1.5" role="group" aria-label="Suggested follow-up queries">
                     {msg.suggestions.map((suggestion, sIdx) => (
                       <button
                         key={sIdx}
                         onClick={() => handleSendMessage(suggestion)}
                         disabled={isLoading}
                         className="rounded-xl border border-slate-800 bg-[#0f172a]/90 hover:border-cyan-500/50 hover:bg-cyan-950/40 hover:text-cyan-200 px-3 py-1.5 text-xs text-slate-300 transition-all text-left disabled:opacity-50 shadow-sm"
+                        aria-label={`Ask suggested query: ${suggestion}`}
                       >
                         {suggestion}
                       </button>
@@ -230,8 +249,8 @@ export const AIPlanningAssistant: React.FC<AIPlanningAssistantProps> = ({
               </div>
 
               {isUser && (
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-600 text-white mt-0.5 font-bold shadow-md shadow-cyan-500/20">
-                  <User className="h-4 w-4" />
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-600 text-white mt-0.5 font-bold shadow-md shadow-cyan-500/20" aria-label="User message author">
+                  <User className="h-4 w-4" aria-hidden="true" />
                 </div>
               )}
             </div>
@@ -240,12 +259,12 @@ export const AIPlanningAssistant: React.FC<AIPlanningAssistantProps> = ({
 
         {/* Loading Indicator */}
         {isLoading && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3" role="status" aria-live="polite">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-              <Bot className="h-4 w-4" />
+              <Bot className="h-4 w-4" aria-hidden="true" />
             </div>
             <div className="rounded-2xl rounded-tl-none border border-slate-800 bg-[#0f172a] px-4 py-3 text-xs text-slate-300 flex items-center gap-2.5 shadow-sm">
-              <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
+              <Loader2 className="h-4 w-4 animate-spin text-cyan-400" aria-hidden="true" />
               <span>Analyzing context & synthesizing strategic guidance...</span>
             </div>
           </div>
@@ -255,7 +274,7 @@ export const AIPlanningAssistant: React.FC<AIPlanningAssistantProps> = ({
       </div>
 
       {/* Quick Prompt Starters (Docked above input) */}
-      <div className="border-t border-slate-800/80 bg-[#0a0f20]/95 px-4 pt-3 pb-1 flex items-center gap-2 overflow-x-auto shrink-0 custom-scrollbar">
+      <div className="border-t border-slate-800/80 bg-[#0a0f20]/95 px-4 pt-3 pb-1 flex items-center gap-2 overflow-x-auto shrink-0 custom-scrollbar" role="region" aria-label="Quick query starters">
         <span className="text-[11px] font-semibold text-slate-400 whitespace-nowrap">
           Quick queries:
         </span>
@@ -265,6 +284,7 @@ export const AIPlanningAssistant: React.FC<AIPlanningAssistantProps> = ({
             onClick={() => handleSendMessage(topic.query)}
             disabled={isLoading}
             className="inline-flex items-center gap-1 rounded-lg border border-slate-800 bg-[#0f172a] hover:border-cyan-500/50 hover:bg-cyan-950/40 hover:text-cyan-200 px-2.5 py-1 text-xs text-slate-300 transition-all whitespace-nowrap disabled:opacity-50"
+            aria-label={`Ask topic: ${topic.label}`}
           >
             <span>{topic.label}</span>
           </button>
@@ -287,6 +307,7 @@ export const AIPlanningAssistant: React.FC<AIPlanningAssistantProps> = ({
               value={inputQuery}
               onChange={(e) => setInputQuery(e.target.value)}
               placeholder="Ask about decor ideas, budget cuts, vendor vetting, or timeline..."
+              aria-label="Ask PlanIQ AI Planning Assistant"
               disabled={isLoading}
               className="w-full rounded-xl border border-slate-700/80 bg-[#080d1a] px-4 py-3 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition-colors disabled:opacity-50"
             />

@@ -13,6 +13,7 @@ import {
 import type { EventBlueprint } from '../types/blueprint.ts';
 import { formatCurrency } from '../utils/blueprintEngine.ts';
 import { generateMarkdown, generateICS, downloadBlob } from '../utils/exportHelpers.ts';
+import { useFocusTrap } from '../hooks/useFocusTrap.ts';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   onClose,
   blueprint,
 }) => {
+  const focusTrapRef = useFocusTrap(isOpen, onClose);
   const [copied, setCopied] = useState(false);
   const [viewTab, setViewTab] = useState<'formatted' | 'markdown'>('formatted');
 
@@ -67,6 +69,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   return (
     <div
+      ref={focusTrapRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="export-modal-title"

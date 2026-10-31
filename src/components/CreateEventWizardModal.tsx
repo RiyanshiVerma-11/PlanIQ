@@ -20,6 +20,7 @@ import {
   Compass,
 } from 'lucide-react';
 import type { EventConstraints, CurrencyCode } from '../types/blueprint.ts';
+import { useFocusTrap } from '../hooks/useFocusTrap.ts';
 import { CURRENCIES, formatCurrency } from '../utils/blueprintEngine.ts';
 
 interface CreateEventWizardModalProps {
@@ -37,6 +38,7 @@ export const CreateEventWizardModal: React.FC<CreateEventWizardModalProps> = ({
   isLoadingAI,
   initialPresetToLoad,
 }) => {
+  const focusTrapRef = useFocusTrap(isOpen, onClose);
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Step 1: Event Basics
@@ -153,14 +155,20 @@ export const CreateEventWizardModal: React.FC<CreateEventWizardModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/85 backdrop-blur-md p-4 overflow-y-auto">
+    <div
+      ref={focusTrapRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="wizard-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/85 backdrop-blur-md p-4 overflow-y-auto"
+    >
       <div className="relative w-full max-w-3xl rounded-2xl border border-stone-800 bg-stone-900 p-6 md:p-8 shadow-2xl my-8">
         {/* Close Button */}
         <button
           onClick={onClose}
           disabled={isLoadingAI}
           className="absolute right-5 top-5 rounded-lg p-1.5 text-stone-400 hover:bg-stone-800 hover:text-stone-100 transition-colors disabled:opacity-40"
-          title="Close wizard"
+          title="Close wizard" aria-label="Close creation wizard"
         >
           <X className="h-5 w-5" />
         </button>
@@ -171,7 +179,7 @@ export const CreateEventWizardModal: React.FC<CreateEventWizardModalProps> = ({
             <Sparkles className="h-4 w-4" />
             <span>Master Event Blueprint Wizard</span>
           </div>
-          <h2 className="font-serif-title text-2xl md:text-3xl font-normal text-stone-100 mt-1">
+          <h2 id="wizard-modal-title" className="font-serif-title text-2xl md:text-3xl font-normal text-stone-100 mt-1">
             {currentStep === 1 && 'Step 01: Event Basics & Typology'}
             {currentStep === 2 && 'Step 02: Scale, Capacity & Spatial Setting'}
             {currentStep === 3 && 'Step 03: Capital Allocation & Financials'}

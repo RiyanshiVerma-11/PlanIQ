@@ -25,7 +25,7 @@ export const DeliverableConcept: React.FC<DeliverableConceptProps> = ({ concept,
     <section className="space-y-8 relative">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl border border-amber-500/40 bg-zinc-900/95 px-4 py-3 text-xs font-semibold text-amber-300 shadow-2xl backdrop-blur-md animate-fade-in">
+        <div role="status" aria-live="polite" className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl border border-amber-500/40 bg-zinc-900/95 px-4 py-3 text-xs font-semibold text-amber-300 shadow-2xl backdrop-blur-md animate-fade-in">
           <div className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-amber-400">
             <Check className="h-3 w-3" />
           </div>
@@ -89,7 +89,11 @@ export const DeliverableConcept: React.FC<DeliverableConceptProps> = ({ concept,
                 type="button"
                 onClick={() => copyToClipboard(swatch.hex, swatch.name)}
                 className="group relative flex flex-col rounded-xl border border-white/10 bg-zinc-950/70 p-3.5 text-left transition-all duration-200 hover:scale-[1.02] hover:border-amber-400/50 hover:shadow-lg hover:shadow-amber-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 overflow-hidden"
+                aria-label={`Copy color ${swatch.name} (Hex: ${swatch.hex}) to clipboard`}
               >
+                <span className="sr-only">
+                  Color swatch ${idx + 1} of ${concept.colorPalette.length}: ${swatch.name}, HEX ${swatch.hex}, Architectural Role: ${swatch.role}. Materiality Notes: ${swatch.notes}
+                </span>
                 {/* Large Visual Color Preview Block */}
                 <div
                   className="h-28 w-full rounded-lg shadow-inner relative flex items-center justify-center transition-all overflow-hidden border border-black/20"
