@@ -26,6 +26,8 @@ import type {
 import { generateExpertAssistantResponse } from '../utils/assistantEngine.ts';
 import { formatCurrency } from '../utils/blueprintEngine.ts';
 
+import { useAssistantChat } from '../hooks/useAssistantChat.ts';
+
 interface AIPlanningAssistantProps {
   blueprint: EventBlueprint;
   onApplyAction?: (action: AssistantActionSuggestion) => void;
@@ -39,140 +41,24 @@ export const AIPlanningAssistant: React.FC<AIPlanningAssistantProps> = ({
   onClose,
   isDrawer = false,
 }) => {
-  const [messages, setMessages] = useState<AssistantMessage[]>(() => [
-    {
-      id: 'welcome-msg',
-      sender: 'assistant',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      text: `Hello! I am your **PlanIQ GenAI Planning Assistant**.
+  const {
+    messages,
+    inputQuery,
+    isLoading,
+    copiedId,
+    appliedActionId,
+    messagesEndRef,
+    setInputQuery,
+    sendMessage: handleSendMessage,
+    copyMessageText: handleCopyText,
+    applyAction: handleApplyAction,
+    resetChat: handleResetChat,
+  } = useAssistantChat({
+    blueprint,
+    onApplyAction,
+  });
 
-I am tuned to your **${blueprint.constraints.eventName || blueprint.constraints.eventType}** (${blueprint.constraints.guestCount} guests, ${formatCurrency(blueprint.budgetBreakdown.totalBudget, blueprint.budgetBreakdown.currency)} budget in *${blueprint.constraints.locationSetting}*).
-
-How can I help elevate your event today? You can ask for creative ideas, budget trimming advice, vendor vetting tactics, or day-of timeline flow!`,
-      suggestions: [
-        '💡 Suggest 3 unique interactive ideas for my guests',
-        '💰 How can I trim 10% from my catering budget?',
-        '⏱️ What are the lead role responsibilities on event day?',
-        '📋 What hidden fees should I watch for in the venue contract?',
-      ],
-    },
-  ]);
-
-  const [inputQuery, setInputQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [appliedActionId, setAppliedActionId] = useState<string | null>(null);
-
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
-
-  const handleSendMessage = async (queryText?: string) => {
-    const textToSend = (queryText || inputQuery).trim();
-    if (!textToSend || isLoading) return;
-
-    const userMsg: AssistantMessage = {
-      id: `user-${Date.now()}`,
-      sender: 'user',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      text: textToSend,
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    setInputQuery('');
-    setIsLoading(true);
-
-    const contextPayload = {
-      eventType: blueprint.constraints.eventType,
-      eventName: blueprint.constraints.eventName,
-      guestCount: blueprint.constraints.guestCount,
-      totalBudget: blueprint.budgetBreakdown.totalBudget,
-      currency: blueprint.budgetBreakdown.currency,
-      locationSetting: blueprint.constraints.locationSetting,
-      keyTheme: blueprint.constraints.keyTheme,
-      timeRemainingMonths: blueprint.constraints.timeRemainingMonths,
-    };
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-      const res = await fetch('/api/assistant/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: textToSend,
-          context: contextPayload,
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const data: AssistantChatResponse = await res.json();
-        const assistantMsg: AssistantMessage = {
-          id: `ai-${Date.now()}`,
-          sender: 'assistant',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          text: data.reply,
-          suggestions: data.suggestions,
-          actionSuggestion: data.actionSuggestion,
-        };
-        setMessages((prev) => [...prev, assistantMsg]);
-        return;
-      }
-    } catch {
-      // Graceful fallback to client-side expert strategist engine
-    } finally {
-      setIsLoading(false);
-    }
-
-    // Client fallback
-    const fallback = generateExpertAssistantResponse(textToSend, contextPayload);
-    const fallbackMsg: AssistantMessage = {
-      id: `ai-${Date.now()}`,
-      sender: 'assistant',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      text: fallback.reply,
-      suggestions: fallback.suggestions,
-      actionSuggestion: fallback.actionSuggestion,
-    };
-    setMessages((prev) => [...prev, fallbackMsg]);
-  };
-
-  const handleCopyText = (id: string, text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const handleApplyAction = (action: AssistantActionSuggestion, msgId: string) => {
-    if (onApplyAction) {
-      onApplyAction(action);
-      setAppliedActionId(msgId);
-    }
-  };
-
-  const handleResetChat = () => {
-    setMessages([
-      {
-        id: 'welcome-reset',
-        sender: 'assistant',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        text: `Chat reset. I am ready to advise on **${blueprint.constraints.eventName || blueprint.constraints.eventType}**. What would you like to explore?`,
-        suggestions: [
-          '💡 Personalized ideas for my setting',
-          '💰 Budget optimization advice',
-          '⏱️ Day-of timeline pacing check',
-          '📋 Vendor contract defense questions',
-        ],
-      },
-    ]);
-  };
 
   const quickPromptTopics = [
     { label: 'Decor & Ideas', query: 'Suggest personalized decor and unique interactive guest moments for this event' },

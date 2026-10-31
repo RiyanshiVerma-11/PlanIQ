@@ -57,13 +57,18 @@ const TabSuspenseFallback = () => (
 );
 import type { EventBlueprint, EventConstraints, BudgetBreakdown } from '../types/blueprint.ts';
 import type { AuthUser } from '../types/auth.ts';
-import type { AssistantActionSuggestion } from '../types/assistant.ts';
+import type {
+  AssistantActionSuggestion,
+  RebalanceBudgetPayload,
+  AddTaskPayload,
+  AddConceptIdeaPayload,
+} from '../types/assistant.ts';
 import {
   PRESET_BLUEPRINTS,
-  generateAlgorithmicBlueprint,
   formatCurrency,
   rebalanceBudgetCategories,
 } from '../utils/blueprintEngine.ts';
+import { useBlueprintManager } from '../hooks/useBlueprintManager.ts';
 
 interface AppWorkspaceProps {
   user: AuthUser;
@@ -76,21 +81,26 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
   onLogout,
   initialPresetId,
 }) => {
-  // Portfolio of active events in the workspace
-  const [portfolioMap, setPortfolioMap] = useState<Record<string, EventBlueprint>>(() => ({
-    'preset-fusion-wedding': structuredClone(PRESET_BLUEPRINTS['preset-fusion-wedding']),
-    'preset-30th-birthday': structuredClone(PRESET_BLUEPRINTS['preset-30th-birthday']),
-    'preset-tech-gala': structuredClone(PRESET_BLUEPRINTS['preset-tech-gala']),
-  }));
+  const {
+    portfolioMap,
+    portfolioList,
+    activeBlueprint,
+    activePresetId,
+    isLoadingAI,
+    generationSource,
+    toastMessage,
+    selectBlueprint: handleSelectPreset,
+    createBlueprint,
+    updateBudget: handleUpdateBudget,
+    toggleTask: handleToggleTask,
+    addTaskToMilestones,
+    addInteractiveElement,
+    resetToDefault,
+    showToast,
+  } = useBlueprintManager({ initialPresetId });
 
-  const defaultBlueprintId =
-    initialPresetId && PRESET_BLUEPRINTS[initialPresetId]
-      ? initialPresetId
-      : 'preset-fusion-wedding';
-
-  const [blueprint, setBlueprint] = useState<EventBlueprint | null>(
-    () => portfolioMap[defaultBlueprintId] || PRESET_BLUEPRINTS['preset-fusion-wedding']
-  );
+  const blueprint = activeBlueprint;
+  const dashboardActiveBlueprint = activeBlueprint;
 
   // Workspace tab states
   const [activeTab, setActiveTab] = useState<WorkspaceTabId>('tab-dashboard');
@@ -101,27 +111,11 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const [isAssistantDrawerOpen, setIsAssistantDrawerOpen] = useState<boolean>(false);
-  const [isLoadingAI, setIsLoadingAI] = useState<boolean>(false);
-  const [activePresetId, setActivePresetId] = useState<string | null>(defaultBlueprintId);
   const [showUserDropdown, setShowUserDropdown] = useState<boolean>(false);
-  const [generationSource, setGenerationSource] = useState<string>('preset');
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const portfolioList = useMemo(() => Object.values(portfolioMap), [portfolioMap]);
-  const dashboardActiveBlueprint =
-    blueprint || portfolioList[0] || PRESET_BLUEPRINTS['preset-fusion-wedding'];
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
-  };
-
   const handleSelectTab = (tabId: WorkspaceTabId) => {
-    if (!blueprint) {
-      setBlueprint(dashboardActiveBlueprint);
-    }
     setActiveTab(tabId);
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
@@ -130,9 +124,6 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
 
   // Map dashboard navigation actions to the tabs
   const handleNavigateSection = (sectionId: string) => {
-    if (!blueprint) {
-      setBlueprint(dashboardActiveBlueprint);
-    }
     if (sectionId === 'section-budget') {
       handleSelectTab('tab-budget');
     } else if (sectionId === 'section-timeline') {
@@ -150,112 +141,12 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
     }
   };
 
-  // Switch to a preset or portfolio event by ID
-  const handleSelectPreset = (presetId: string) => {
-    const selected = portfolioMap[presetId] || PRESET_BLUEPRINTS[presetId];
-    if (selected) {
-      setBlueprint(selected);
-      setActivePresetId(presetId);
-      setGenerationSource('preset');
-      showToast(`Switched to ${selected.constraints.eventName || selected.constraints.eventType}`);
-    }
-  };
-
   // Handle custom blueprint generation from wizard or modal
   const handleCreateBlueprint = async (constraints: EventConstraints, useAI: boolean) => {
-    if (useAI) {
-      setIsLoadingAI(true);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 45000);
-
-      try {
-        const res = await fetch('/api/generate-blueprint', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(constraints),
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.blueprint) {
-            const createdBp: EventBlueprint = data.blueprint;
-            setBlueprint(createdBp);
-            setPortfolioMap((prev) => ({
-              ...prev,
-              [createdBp.constraints.id]: createdBp,
-            }));
-            setActivePresetId(createdBp.constraints.id);
-            setGenerationSource(data.source || 'gemini-3.8-flash');
-            setIsWizardOpen(false);
-            setIsEditModalOpen(false);
-            setActiveTab('tab-concept');
-            showToast('AI synthesized a complete, execution-ready blueprint!');
-            return;
-          }
-        }
-      } catch (err) {
-        console.error('Server-side AI synthesis timeout or error, utilizing algorithmic engine:', err);
-      } finally {
-        clearTimeout(timeoutId);
-        setIsLoadingAI(false);
-      }
-    }
-
-    const generated = generateAlgorithmicBlueprint(constraints);
-    setBlueprint(generated);
-    setPortfolioMap((prev) => ({
-      ...prev,
-      [generated.constraints.id]: generated,
-    }));
-    setActivePresetId(generated.constraints.id);
-    setGenerationSource('algorithmic-dynamic');
+    await createBlueprint(constraints, useAI);
     setIsWizardOpen(false);
     setIsEditModalOpen(false);
     setActiveTab('tab-concept');
-    showToast('Created event blueprint with forensic algorithmic engine!');
-  };
-
-  const handleUpdateBudget = (updated: BudgetBreakdown) => {
-    setBlueprint((prev) => {
-      const target = prev || dashboardActiveBlueprint;
-      const nextBp: EventBlueprint = {
-        ...target,
-        budgetBreakdown: updated,
-      };
-      setPortfolioMap((map) => ({
-        ...map,
-        [nextBp.constraints.id]: nextBp,
-      }));
-      return nextBp;
-    });
-  };
-
-  const handleToggleTask = (phaseId: string, taskId: string) => {
-    setBlueprint((prev) => {
-      const target = prev || dashboardActiveBlueprint;
-      const updatedMilestones = target.milestones.map((phase) => {
-        if (phase.id === phaseId) {
-          return {
-            ...phase,
-            tasks: phase.tasks.map((task) => {
-              if (task.id === taskId) {
-                return { ...task, completed: !task.completed };
-              }
-              return task;
-            }),
-          };
-        }
-        return phase;
-      });
-      const nextBp: EventBlueprint = { ...target, milestones: updatedMilestones };
-      setPortfolioMap((map) => ({
-        ...map,
-        [nextBp.constraints.id]: nextBp,
-      }));
-      return nextBp;
-    });
   };
 
   // Handle Action Execution from GenAI Co-Planner Assistant
@@ -263,8 +154,9 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
     if (!blueprint) return;
 
     if (action.type === 'rebalance_budget') {
-      const targetCatId = action.payload?.categoryId || 'cat-contingency';
-      const pctIncrease = action.payload?.percentageIncrease || 2;
+      const payload = action.payload as RebalanceBudgetPayload;
+      const targetCatId = payload?.categoryId || 'cat-contingency';
+      const pctIncrease = payload?.percentageAdjustment || 2;
       const updatedCats = blueprint.budgetBreakdown.categories.map((c) => {
         if (c.id === targetCatId) {
           return { ...c, percentage: c.percentage + pctIncrease };
@@ -282,49 +174,28 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
       });
       showToast('Budget allocations rebalanced based on AI recommendation!');
     } else if (action.type === 'add_task') {
-      const newTask = {
+      const payload = action.payload as AddTaskPayload;
+      const newTask: EventBlueprint['milestones'][0]['tasks'][0] = {
         id: `t-ai-action-${Date.now()}`,
-        title: action.payload?.title || 'Vendor Sync & Milestone Alignment Check',
-        category: (action.payload?.category || 'Logistics') as any,
-        ownerRole: action.payload?.ownerRole || 'Logistics Director',
+        title: payload?.title || 'Vendor Sync & Milestone Alignment Check',
+        category: (payload?.category as EventBlueprint['milestones'][0]['tasks'][0]['category']) || 'Logistics',
+        ownerRole: 'Logistics Director',
         completed: false,
-        priority: (action.payload?.priority || 'Critical') as any,
-        deadlineNote: 'Recommended by PlanIQ AI Assistant',
+        priority: payload?.priority || 'Critical',
+        deadlineNote: payload?.deadlineNote || 'Recommended by PlanIQ AI Assistant',
       };
-      setBlueprint((prev) => {
-        if (!prev) return prev;
-        const updatedMilestones = [...prev.milestones];
-        if (updatedMilestones[0]) {
-          updatedMilestones[0] = {
-            ...updatedMilestones[0],
-            tasks: [newTask, ...updatedMilestones[0].tasks],
-          };
-        }
-        const nextBp = { ...prev, milestones: updatedMilestones };
-        setPortfolioMap((m) => ({ ...m, [nextBp.constraints.id]: nextBp }));
-        return nextBp;
-      });
+      addTaskToMilestones(newTask);
       showToast('Task added to your milestones timeline!');
     } else if (action.type === 'add_concept_idea') {
-      const newElement = {
-        title: action.payload?.title || 'Interactive Experience',
-        targetMoment: 'Mid-Reception',
-        description: action.payload?.description || 'Bespoke guest touchpoint',
+      const payload = action.payload as AddConceptIdeaPayload;
+      const newElement: EventBlueprint['creativeConcept']['interactiveElements'][0] = {
+        title: payload?.title || 'Interactive Experience',
+        targetMoment: payload?.targetMoment || 'Mid-Reception',
+        description: payload?.description || 'Bespoke guest touchpoint',
         guestExperience: 'High emotional engagement and keepsake',
         logisticalRequirement: 'Dedicated zone & lead coordinator assignment',
       };
-      setBlueprint((prev) => {
-        if (!prev) return prev;
-        const nextBp = {
-          ...prev,
-          creativeConcept: {
-            ...prev.creativeConcept,
-            interactiveElements: [...prev.creativeConcept.interactiveElements, newElement],
-          },
-        };
-        setPortfolioMap((m) => ({ ...m, [nextBp.constraints.id]: nextBp }));
-        return nextBp;
-      });
+      addInteractiveElement(newElement);
       showToast('Idea added to your Creative Concept!');
     } else if (action.type === 'add_vendor_question') {
       showToast('Verified vetting protocol added to your Vendor Kit!');
@@ -475,7 +346,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
 
                     <button
                       onClick={() => {
-                        setBlueprint(null);
+                        resetToDefault();
                         setShowUserDropdown(false);
                       }}
                       className="w-full flex items-center gap-2 px-3 py-2 text-xs text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors text-left"

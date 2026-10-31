@@ -3,6 +3,8 @@ import type {
   AssistantChatResponse,
   AssistantActionSuggestion,
 } from '../types/assistant.ts';
+import type { CurrencyCode } from '../types/blueprint.ts';
+import { SUPPORTED_CURRENCIES } from '../constants/eventConstants.ts';
 import { formatCurrency } from './blueprintEngine.ts';
 
 /**
@@ -20,7 +22,9 @@ export function generateExpertAssistantResponse(
   const isBirthday = /birthday|milestone|anniversary|soiree|party/i.test(eventType) || /birthday/i.test(query);
   const isCommunity = /community|gala|festival|charity|conference|awards|public/i.test(eventType) || /community|gala|festival/i.test(query);
 
-  const currency = (context.currency as any) || 'USD';
+  const currency: CurrencyCode = SUPPORTED_CURRENCIES.includes(context.currency as CurrencyCode)
+    ? (context.currency as CurrencyCode)
+    : 'USD';
   const totalBudget = context.totalBudget || 25000;
   const guestCount = context.guestCount || 100;
   const perGuest = Math.round(totalBudget / (guestCount || 1));
