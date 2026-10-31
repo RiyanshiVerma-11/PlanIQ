@@ -1,4 +1,5 @@
 import express from 'express';
+import compression from 'compression';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
@@ -17,14 +18,92 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = parseInt(process.env.PORT || '3000', 10);
 
+app.use(compression());
 app.use(express.json({ limit: '256kb' }));
 
-// Security headers middleware
-app.use((_req, res, next) => {
+// Performance telemetry & Security headers middleware
+app.use((req, res, next) => {
+  const startHrTime = process.hrtime.bigint();
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+  res.on('finish', () => {
+    const elapsedMs = Number(process.hrtime.bigint() - startHrTime) / 1e6;
+    res.setHeader('X-Response-Time', `${elapsedMs.toFixed(2)}ms`);
+  });
   next();
 });
+
+// High-Performance In-Memory LRU Cache with TTL
+interface CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+
+class FastLRUCache<T> {
+  private cache = new Map<string, CacheEntry<T>>();
+  private maxEntries: number;
+  private defaultTTLMs: number;
+
+  constructor(maxEntries = 150, defaultTTLMs = 1000 * 60 * 30) {
+    this.maxEntries = maxEntries;
+    this.defaultTTLMs = defaultTTLMs;
+  }
+
+  get(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+    this.cache.delete(key);
+    this.cache.set(key, entry);
+    return entry.data;
+  }
+
+  set(key: string, data: T, ttlMs = this.defaultTTLMs): void {
+    if (this.cache.size >= this.maxEntries) {
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey) this.cache.delete(oldestKey);
+    }
+    this.cache.set(key, { data, expiresAt: Date.now() + ttlMs });
+  }
+
+  size(): number {
+    return this.cache.size;
+  }
+}
+
+const blueprintCache = new FastLRUCache<EventBlueprint>(100, 1000 * 60 * 60);
+const assistantChatCache = new FastLRUCache<AssistantChatResponse>(200, 1000 * 60 * 30);
+
+let sharedGoogleGenAI: GoogleGenAI | null = null;
+function getSharedGoogleGenAI(): GoogleGenAI | null {
+  if (!process.env.GEMINI_API_KEY) return null;
+  if (!sharedGoogleGenAI) {
+    sharedGoogleGenAI = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+      httpOptions: {
+        headers: { 'User-Agent': 'aistudio-build' },
+      },
+    });
+  }
+  return sharedGoogleGenAI;
+}
+
+function getConstraintsCacheKey(c: EventConstraints): string {
+  return [
+    (c.eventType || '').toLowerCase().trim(),
+    c.totalBudget,
+    c.currency,
+    c.guestCount,
+    c.timeRemainingMonths,
+    (c.locationSetting || '').toLowerCase().trim(),
+    (c.keyTheme || '').toLowerCase().trim(),
+    (c.specialRequests || '').toLowerCase().trim(),
+  ].join('|');
+}
 
 function sanitizeText(input: unknown, maxLen = 300, fallback = ''): string {
   if (typeof input !== 'string') return fallback;
@@ -59,6 +138,12 @@ app.get('/api/health', (_req, res) => {
     status: 'ok',
     hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
     timestamp: new Date().toISOString(),
+    metrics: {
+      uptimeSeconds: Math.round(process.uptime()),
+      memoryHeapMB: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      blueprintCacheSize: blueprintCache.size(),
+      assistantCacheSize: assistantChatCache.size(),
+    },
   });
 });
 
@@ -72,6 +157,15 @@ app.post('/api/generate-blueprint', async (req, res) => {
   }
 
   const constraints: EventConstraints = sanitizeConstraints(body);
+  const cacheKey = getConstraintsCacheKey(constraints);
+  const cachedBlueprint = blueprintCache.get(cacheKey);
+
+  if (cachedBlueprint) {
+    res.setHeader('X-Cache', 'HIT');
+    res.json({ blueprint: cachedBlueprint, source: 'cache-accelerated' });
+    return;
+  }
+  res.setHeader('X-Cache', 'MISS');
 
   // If Gemini API key is configured, synthesize via Gemini
   if (process.env.GEMINI_API_KEY) {
@@ -397,6 +491,7 @@ Deliverables Required:
 
   // Dynamic Algorithmic Master Blueprint fallback
   const blueprint = generateAlgorithmicBlueprint(constraints);
+  blueprintCache.set(cacheKey, blueprint);
   res.json({ blueprint, source: 'algorithmic-dynamic' });
 });
 
@@ -420,6 +515,15 @@ app.post('/api/assistant/chat', async (req, res) => {
     timeRemainingMonths: Number(body.context?.timeRemainingMonths) || 3,
     activeTab: sanitizeText(body.context?.activeTab, 50, 'tab-concept'),
   };
+
+  const assistantCacheKey = `${userMessage.trim().toLowerCase()}|${context.eventType}|${context.totalBudget}|${context.guestCount}`;
+  const cachedAssistant = assistantChatCache.get(assistantCacheKey);
+  if (cachedAssistant) {
+    res.setHeader('X-Cache', 'HIT');
+    res.json(cachedAssistant);
+    return;
+  }
+  res.setHeader('X-Cache', 'MISS');
 
   // If Gemini API key is configured, synthesize response with Gemini
   if (process.env.GEMINI_API_KEY) {
@@ -517,6 +621,7 @@ Instructions:
             actionSuggestion: parsed.actionSuggestion,
             source: 'gemini-ai',
           };
+          assistantChatCache.set(assistantCacheKey, responsePayload);
           res.json(responsePayload);
           return;
         }
@@ -528,6 +633,7 @@ Instructions:
 
   // Deterministic Expert Engine Fallback (guarantees 100% offline and test reliability)
   const fallback = generateExpertAssistantResponse(userMessage, context);
+  assistantChatCache.set(assistantCacheKey, fallback);
   res.json(fallback);
 });
 

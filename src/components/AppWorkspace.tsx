@@ -17,17 +17,44 @@ import {
   CheckCircle2,
   Calendar,
 } from 'lucide-react';
-import { ProjectDashboard } from './ProjectDashboard.tsx';
 import { DeliverableConcept } from './DeliverableConcept.tsx';
-import { DeliverableBudget } from './DeliverableBudget.tsx';
-import { DeliverableTimeline } from './DeliverableTimeline.tsx';
-import { DeliverableVendors } from './DeliverableVendors.tsx';
 import { StudioSidebar, type WorkspaceTabId } from './StudioSidebar.tsx';
 import { ExportHandoverSection } from './ExportHandoverSection.tsx';
-import { CreateEventWizardModal } from './CreateEventWizardModal.tsx';
-import { EventConstraintFormModal } from './EventConstraintFormModal.tsx';
-import { ExportModal } from './ExportModal.tsx';
-import { AIPlanningAssistant } from './AIPlanningAssistant.tsx';
+
+// Code-split heavy views and modals for peak frontend efficiency
+const ProjectDashboard = React.lazy(() =>
+  import('./ProjectDashboard.tsx').then((m) => ({ default: m.ProjectDashboard }))
+);
+const DeliverableBudget = React.lazy(() =>
+  import('./DeliverableBudget.tsx').then((m) => ({ default: m.DeliverableBudget }))
+);
+const DeliverableTimeline = React.lazy(() =>
+  import('./DeliverableTimeline.tsx').then((m) => ({ default: m.DeliverableTimeline }))
+);
+const DeliverableVendors = React.lazy(() =>
+  import('./DeliverableVendors.tsx').then((m) => ({ default: m.DeliverableVendors }))
+);
+const AIPlanningAssistant = React.lazy(() =>
+  import('./AIPlanningAssistant.tsx').then((m) => ({ default: m.AIPlanningAssistant }))
+);
+const CreateEventWizardModal = React.lazy(() =>
+  import('./CreateEventWizardModal.tsx').then((m) => ({ default: m.CreateEventWizardModal }))
+);
+const EventConstraintFormModal = React.lazy(() =>
+  import('./EventConstraintFormModal.tsx').then((m) => ({ default: m.EventConstraintFormModal }))
+);
+const ExportModal = React.lazy(() =>
+  import('./ExportModal.tsx').then((m) => ({ default: m.ExportModal }))
+);
+
+const TabSuspenseFallback = () => (
+  <div className="flex h-64 w-full items-center justify-center rounded-2xl border border-white/10 bg-zinc-950/40 p-8">
+    <div className="flex flex-col items-center gap-3">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
+      <span className="font-mono text-xs uppercase tracking-wider text-zinc-500">Optimizing View...</span>
+    </div>
+  </div>
+);
 import type { EventBlueprint, EventConstraints, BudgetBreakdown } from '../types/blueprint.ts';
 import type { AuthUser } from '../types/auth.ts';
 import type { AssistantActionSuggestion } from '../types/assistant.ts';
@@ -835,6 +862,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
         </div>
       )}
 
+      <React.Suspense fallback={null}>
       {/* 4-Step Interactive Creation Wizard */}
       <CreateEventWizardModal
         isOpen={isWizardOpen}
@@ -863,6 +891,7 @@ export const AppWorkspace: React.FC<AppWorkspaceProps> = ({
           blueprint={blueprint}
         />
       )}
+      </React.Suspense>
     </div>
   );
 };

@@ -21,17 +21,29 @@ export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
   JPY: { code: 'JPY', symbol: '¥', rateToUSD: 154.0, locale: 'ja-JP' },
 };
 
+const FORMATTER_CACHE = new Map<CurrencyCode, Intl.NumberFormat>();
+
+export function getCurrencyFormatter(currency: CurrencyCode): Intl.NumberFormat {
+  let formatter = FORMATTER_CACHE.get(currency);
+  if (!formatter) {
+    const cfg = CURRENCIES[currency] || CURRENCIES.USD;
+    formatter = new Intl.NumberFormat(cfg.locale, {
+      style: 'currency',
+      currency: cfg.code,
+      maximumFractionDigits: cfg.code === 'JPY' ? 0 : 0,
+    });
+    FORMATTER_CACHE.set(currency, formatter);
+  }
+  return formatter;
+}
+
 /**
- * Format currency with international formatting standards
+ * Format currency with international formatting standards (high-performance memoized formatter)
  */
 export function formatCurrency(amount: number, currency: CurrencyCode): string {
   const cfg = CURRENCIES[currency] || CURRENCIES.USD;
   try {
-    return new Intl.NumberFormat(cfg.locale, {
-      style: 'currency',
-      currency: cfg.code,
-      maximumFractionDigits: cfg.code === 'JPY' ? 0 : 0,
-    }).format(Math.round(amount));
+    return getCurrencyFormatter(currency).format(Math.round(amount));
   } catch {
     return `${cfg.symbol}${Math.round(amount).toLocaleString()}`;
   }

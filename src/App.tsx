@@ -1,8 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { ProductLandingPage } from './components/ProductLandingPage.tsx';
-import { LoginPage } from './components/LoginPage.tsx';
-import { AppWorkspace } from './components/AppWorkspace.tsx';
 import type { AuthUser } from './types/auth.ts';
+
+// Code-split heavy workspace and login views for high efficiency & minimal initial bundle
+const LoginPage = lazy(() =>
+  import('./components/LoginPage.tsx').then((m) => ({ default: m.LoginPage }))
+);
+const AppWorkspace = lazy(() =>
+  import('./components/AppWorkspace.tsx').then((m) => ({ default: m.AppWorkspace }))
+);
+
+const ViewLoadingFallback = () => (
+  <div className="flex min-h-screen items-center justify-center bg-[#080b14] text-amber-400">
+    <div className="flex flex-col items-center gap-3">
+      <div className="h-10 w-10 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
+      <span className="font-mono text-xs uppercase tracking-widest text-zinc-400">Loading Studio Engine...</span>
+    </div>
+  </div>
+);
 
 type AppView = 'landing' | 'login' | 'app';
 
@@ -112,19 +127,23 @@ export default function App() {
       )}
 
       {currentView === 'login' && (
-        <LoginPage
-          onLoginSuccess={handleLoginSuccess}
-          onBackToLanding={() => setCurrentView('landing')}
-          defaultEmail="riyanshiverma46@gmail.com"
-        />
+        <Suspense fallback={<ViewLoadingFallback />}>
+          <LoginPage
+            onLoginSuccess={handleLoginSuccess}
+            onBackToLanding={() => setCurrentView('landing')}
+            defaultEmail="riyanshiverma46@gmail.com"
+          />
+        </Suspense>
       )}
 
       {currentView === 'app' && authUser && (
-        <AppWorkspace
-          user={authUser}
-          onLogout={handleLogout}
-          initialPresetId={selectedPresetId}
-        />
+        <Suspense fallback={<ViewLoadingFallback />}>
+          <AppWorkspace
+            user={authUser}
+            onLogout={handleLogout}
+            initialPresetId={selectedPresetId}
+          />
+        </Suspense>
       )}
     </div>
   );
