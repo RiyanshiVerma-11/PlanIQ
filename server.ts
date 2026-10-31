@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI, Type } from '@google/genai';
 import { generateAlgorithmicBlueprint } from './src/utils/blueprintEngine.ts';
@@ -531,11 +532,50 @@ Instructions:
 });
 
 async function startServer() {
-  if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, 'dist')));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-    });
+  const distDir = path.join(__dirname, 'dist');
+  const distIndex = path.join(distDir, 'index.html');
+  const hasDist = fs.existsSync(distIndex);
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isProduction || hasDist) {
+    if (hasDist) {
+      app.use(express.static(distDir));
+      app.get('*', (_req, res) => {
+        res.sendFile(distIndex);
+      });
+    } else {
+      console.error(
+        '[PlanIQ ERROR] dist/index.html was not found! In your Render Web Service settings, ensure your Build Command is: npm install && npm run build'
+      );
+      app.get('*', (_req, res) => {
+        res.status(500).send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8" />
+              <title>PlanIQ Studio — Build Step Required</title>
+              <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0A0D14; color: #F3F4F6; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+                .card { background: #121826; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 32px; max-width: 600px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+                h1 { color: #F59E0B; margin-top: 0; font-size: 24px; }
+                p { line-height: 1.6; color: #9CA3AF; margin: 16px 0; }
+                code { background: #1E293B; color: #10B981; padding: 4px 8px; border-radius: 4px; font-size: 14px; }
+                .box { background: #0A0D14; border: 1px solid #1E293B; padding: 12px; border-radius: 8px; margin: 20px 0; font-family: monospace; color: #34D399; font-size: 15px; }
+              </style>
+            </head>
+            <body>
+              <div class="card">
+                <h1>⚠️ PlanIQ Web Service Started — Build Required</h1>
+                <p>The Express server is running successfully, but the frontend distribution bundle was not found at <code>dist/index.html</code>.</p>
+                <p>To resolve this on <strong>Render</strong>:</p>
+                <div class="box">Build Command: npm install && npm run build</div>
+                <p>Then trigger a redeploy from your Render Dashboard: <strong>Manual Deploy &gt; Clear build cache &amp; deploy</strong>.</p>
+              </div>
+            </body>
+          </html>
+        `);
+      });
+    }
   } else {
     const { createServer } = await import('vite');
     const vite = await createServer({
