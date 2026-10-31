@@ -5,7 +5,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org)
 [![React](https://img.shields.io/badge/React-19-cyan)](https://react.dev)
 [![Gemini 2.5 Flash](https://img.shields.io/badge/GenAI-Google%20Gemini-orange)](https://deepmind.google/technologies/gemini)
-[![Tests Passing](https://img.shields.io/badge/Tests-34%2F34%20Passing-emerald)](https://nodejs.org)
+[![Tests Passing](https://img.shields.io/badge/Tests-46%2F46%20Passing-emerald)](https://nodejs.org)
 
 > 🌐 **Live Application URL:** [https://planiq-2t31.onrender.com](https://planiq-2t31.onrender.com)
 
@@ -144,7 +144,7 @@ flowchart TB
 - **Compact Footprint**: Total Git repo size is **< 1.5 MB**, far below the 10 MB limit.
 
 ### D. Testing & Validation (High Impact)
-The project includes **34 automated unit, integration, and efficiency benchmark tests** executing via Node's native test runner:
+The project includes **46 automated unit, integration, security, and efficiency benchmark tests** executing via Node's native test runner:
 - `tests/assistantEngine.test.ts`: Validates GenAI co-planner responses across Weddings, Birthdays, Community Events, budget cuts, and contract defense.
 - `tests/blueprintEngine.test.ts`: Validates currency formatting, per-guest formulas, 100% budget normalization, and presets.
 - `tests/calendarExport.test.ts`: Validates RFC 5545 format, CRLF line endings, and midnight wraparounds.
@@ -152,6 +152,8 @@ The project includes **34 automated unit, integration, and efficiency benchmark 
 - `tests/projectDashboard.test.ts`: Validates portfolio metrics aggregation and Recharts dataset structures.
 - `tests/schemaIntegrity.test.ts`: Validates data schema adherence and role types.
 - `tests/efficiencyBenchmark.test.ts`: Benchmarks currency formatting (>50,000 ops/sec), normalization speed (<0.05ms), portfolio metrics (<1ms), synthesis latency (<5ms), and chunk ceiling compliance (<500 KB).
+- `tests/lruCache.test.ts`: Validates FastLRUCache eviction, TTL expiration, telemetry tracking, and memory bounds.
+- `tests/sanitizers.test.ts`: Validates input text sanitization, control character stripping, numeric clamping, and deterministic cache key normalization.
 
 ### E. Accessibility (a11y) & UX (Medium Impact)
 - High-contrast, WCAG AA compliant palette on deep obsidian backgrounds (`#0A0D14`).
@@ -231,5 +233,5 @@ npm run build
 - [x] **Branch Requirement**: Exactly 1 public branch (`main`)
 - [x] **Challenge Vertical**: [Challenge 5] Celebration & Event Planner (Weddings, Birthdays, Community Events)
 - [x] **Core Features**: Budgets, Timelines, Vendor Checklists, Personalized Ideas, and GenAI Planning Assistant
-- [x] **Automated Tests**: 34 passing unit, integration, and efficiency benchmark tests
+- [x] **Automated Tests**: 46 passing unit, integration, security, and efficiency benchmark tests
 - [x] **Documentation**: Complete problem alignment, approach, architecture diagrams, and assumptions documented.

@@ -16,12 +16,6 @@ export default defineConfig(() => {
       },
       dedupe: ['react', 'react-dom'],
     },
-    esbuild: {
-      legalComments: 'none',
-      minifyWhitespace: true,
-      minifyIdentifiers: true,
-      minifySyntax: true,
-    },
     build: {
       target: 'es2022',
       cssCodeSplit: true,
